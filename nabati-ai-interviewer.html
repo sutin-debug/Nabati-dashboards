@@ -12,10 +12,10 @@
 /* ========== Reset & Base ========== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --primary:#4F46E5;--primary-hover:#4338CA;--primary-light:#EEF2FF;
+  --primary:#E31E24;--primary-hover:#C41A1F;--primary-light:#FEE2E2;
   --success:#10B981;--warning:#F59E0B;--error:#EF4444;
-  --bg:#F1F5F9;--card:#FFFFFF;--text:#1E293B;--text-sec:#64748B;--text-light:#94A3B8;
-  --border:#E2E8F0;--sidebar-grad:linear-gradient(180deg,#4F46E5 0%,#7C3AED 100%);
+  --bg:#F8F9FA;--card:#FFFFFF;--text:#1E293B;--text-sec:#64748B;--text-light:#94A3B8;
+  --border:#E2E8F0;--sidebar-grad:linear-gradient(180deg,#C41A1F 0%,#E31E24 40%,#FF6B35 100%);
   --radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
   --shadow-lg:0 10px 25px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
   --transition:all .2s ease;
@@ -31,9 +31,10 @@ a{color:var(--primary);text-decoration:none}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
 /* ========== Sidebar ========== */
-.sidebar-header{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.15)}
-.sidebar-header h1{font-size:18px;font-weight:700;margin-bottom:4px}
-.sidebar-header p{font-size:12px;opacity:.8}
+.sidebar-header{padding:20px 16px 18px;border-bottom:1px solid rgba(255,255,255,.15);text-align:center}
+.sidebar-logo{width:130px;height:auto;margin-bottom:6px;display:inline-block;border-radius:4px}
+.sidebar-header h1{font-size:17px;font-weight:700;margin-bottom:3px;line-height:1.2}
+.sidebar-header p{font-size:11px;opacity:.75}
 .nav{flex:1;padding:16px 12px;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);margin-bottom:4px;position:relative}
 .nav-item:hover{background:rgba(255,255,255,.12)}
@@ -215,8 +216,8 @@ a{color:var(--primary);text-decoration:none}
 /* ========== Responsive ========== */
 @media(max-width:768px){
   .sidebar{width:60px}
-  .sidebar-header h1,.sidebar-header p,.nav-text,.sidebar-footer{display:none}
-  .nav-item{justify-content:center}
+  .sidebar-logo,.sidebar-header h1,.sidebar-header p,.nav-text,.sidebar-footer{display:none}
+  .nav-item{justify-content:center;padding:12px 8px}
   .content{padding:16px}
   .card{padding:16px}
 }
@@ -228,6 +229,7 @@ a{color:var(--primary);text-decoration:none}
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar">
     <div class="sidebar-header">
+      <img src="nabati-logo.png" alt="Nabati" class="sidebar-logo">
       <h1>Nabati AI Smart Interviewer</h1>
       <p>HR Recruitment Full-Process Assistant</p>
     </div>
@@ -1131,7 +1133,7 @@ function renderComparisonResult(data, dimensions) {
   const container = document.getElementById('comparisonResult');
 
   // Build radar chart data
-  const colors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
+  const colors = ['#E31E24', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
   const datasets = state.candidates.map((c, i) => {
     const scores = dimensions.map(d => c.analysis?.dimensionScores?.[d] || 0);
     return {
@@ -1629,9 +1631,9 @@ function exportQuestionsWord(candidateId) {
     <head><meta charset="utf-8"><title>面试问题 - ${candidate.name}</title>
     <style>
       body { font-family: "Microsoft YaHei", sans-serif; font-size: 12pt; line-height: 1.6; }
-      h1 { font-size: 18pt; color: #4F46E5; border-bottom: 2px solid #4F46E5; padding-bottom: 8px; }
-      h2 { font-size: 14pt; color: #4F46E5; margin-top: 20px; }
-      h3 { font-size: 12pt; color: #333; margin-top: 16px; border-left: 4px solid #4F46E5; padding-left: 10px; }
+      h1 { font-size: 18pt; color: #E31E24; border-bottom: 2px solid #E31E24; padding-bottom: 8px; }
+      h2 { font-size: 14pt; color: #E31E24; margin-top: 20px; }
+      h3 { font-size: 12pt; color: #333; margin-top: 16px; border-left: 4px solid #E31E24; padding-left: 10px; }
       .meta { color: #666; font-size: 11pt; margin: 10px 0; }
       .question { margin: 12px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
       .question-title { font-weight: bold; font-size: 12pt; }
@@ -1976,8 +1978,8 @@ function exportDecisionReport(candidateId) {
     <head><meta charset="utf-8"><title>录用决策报告 - ${candidate.name}</title>
     <style>
       body { font-family: "Microsoft YaHei", sans-serif; font-size: 12pt; line-height: 1.8; color: #1E293B; }
-      h1 { font-size: 20pt; color: #4F46E5; border-bottom: 2px solid #4F46E5; padding-bottom: 8px; }
-      h2 { font-size: 14pt; color: #4F46E5; margin-top: 24px; border-left: 4px solid #4F46E5; padding-left: 10px; }
+      h1 { font-size: 20pt; color: #E31E24; border-bottom: 2px solid #E31E24; padding-bottom: 8px; }
+      h2 { font-size: 14pt; color: #E31E24; margin-top: 24px; border-left: 4px solid #E31E24; padding-left: 10px; }
       .meta { background: #F1F5F9; padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
       .recommendation { font-size: 18pt; font-weight: bold; }
       ul { padding-left: 20px; }
