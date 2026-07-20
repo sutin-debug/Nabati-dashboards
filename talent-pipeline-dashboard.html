@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nabati 人才梯队</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css">
+<style>
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #0d47a1;
+  --primary-light: #e8f0fe;
+  --sidebar-bg: #1e2a3a;
+  --sidebar-hover: #2a3a4e;
+  --sidebar-text: #a8b4c4;
+  --sidebar-active: #1a73e8;
+  --content-bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --success: #4caf50;
+  --warning: #ffc107;
+  --danger: #f44336;
+  --info: #2196f3;
+  --accent-warm: #ff6b35;
+  --border-color: #e5e7eb;
+  --radius: 8px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--content-bg); color: var(--text-primary); }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  position: fixed; left: 0; top: 0; width: 260px; height: 100vh;
+  background: var(--sidebar-bg); color: var(--sidebar-text);
+  display: flex; flex-direction: column; z-index: 100;
+  transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 20px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;
+}
+.sidebar-logo img {
+  width: 140px; height: auto; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto;
+}
+.sidebar-logo h1 { font-size: 18px; color: #fff; font-weight: 600; margin-bottom: 4px; }
+.sidebar-logo p { font-size: 12px; color: var(--sidebar-text); }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-item {
+  display: flex; align-items: center; padding: 12px 20px; cursor: pointer;
+  color: var(--sidebar-text); transition: all 0.2s; border-left: 3px solid transparent;
+  font-size: 14px; gap: 12px;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-hover); color: #fff; border-left-color: var(--sidebar-active); }
+.nav-item i { width: 20px; text-align: center; font-size: 16px; }
+.sidebar-bottom { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+.sidebar-btn {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: rgba(255,255,255,0.08); border: none; color: var(--sidebar-text);
+  cursor: pointer; border-radius: var(--radius); font-size: 13px; width: 100%;
+  transition: all 0.2s; margin-bottom: 8px;
+}
+.sidebar-btn:hover { background: var(--sidebar-active); color: #fff; }
+.sidebar-btn i { width: 18px; text-align: center; }
+
+/* ===== Language Toggle ===== */
+.lang-toggle {
+  display: flex; align-items: center; gap: 0;
+  background: rgba(255,255,255,0.08); border-radius: 20px; padding: 3px;
+  margin-top: 8px; width: fit-content; margin-left: auto; margin-right: auto;
+}
+.lang-toggle-btn {
+  padding: 5px 12px; border: none; background: transparent;
+  color: var(--sidebar-text); font-size: 13px; cursor: pointer;
+  border-radius: 16px; transition: all 0.2s; font-weight: 500;
+}
+.lang-toggle-btn.active {
+  background: var(--sidebar-active); color: #fff;
+}
+.lang-toggle-btn:hover:not(.active) { color: #fff; }
+
+/* ===== Mobile Toggle ===== */
+.mobile-toggle {
+  position: fixed; top: 12px; left: 12px; z-index: 200;
+  background: var(--primary); color: #fff; border: none; padding: 8px 12px;
+  border-radius: var(--radius); cursor: pointer; font-size: 18px; display: none;
+}
+
+/* ===== Content Area ===== */
+.content { margin-left: 260px; min-height: 100vh; }
+.page-header {
+  padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between;
+}
+.page-header h2 { font-size: 22px; font-weight: 600; }
+.page-container { padding: 20px 24px; display: none; }
+.page-container.active { display: block; }
+
+/* ===== KPI Cards ===== */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--card-shadow); display: flex; align-items: center; gap: 16px;
+}
+.kpi-card .kpi-icon {
+  width: 48px; height: 48px; border-radius: 12px; display: flex;
+  align-items: center; justify-content: center; font-size: 22px; color: #fff;
+}
+.kpi-card .kpi-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.kpi-card .kpi-label { font-size: 13px; color: var(--text-secondary); }
+
+/* ===== Chart Cards ===== */
+.chart-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--card-shadow); margin-bottom: 16px;
+}
+.chart-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* ===== Nine-Box Grid ===== */
+.ninebox-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.ninebox-controls select {
+  padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius);
+  background: var(--card-bg); font-size: 14px; min-width: 160px;
+}
+.ninebox-wrapper {
+  display: flex; gap: 20px; background: var(--card-bg); border-radius: var(--radius);
+  padding: 24px; box-shadow: var(--card-shadow);
+}
+.ninebox-axis-labels {
+  display: flex; flex-direction: column; justify-content: space-between;
+  align-items: center; width: 60px; padding: 0 0 0 0;
+}
+.axis-label-vertical { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.axis-label-horizontal { font-size: 14px; font-weight: 600; color: var(--text-secondary); text-align: center; margin-bottom: 12px; }
+.ninebox-grid-outer { flex: 1; }
+.ninebox-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 8px; min-height: 420px;
+}
+.ninebox-cell {
+  border-radius: var(--radius); padding: 12px; min-height: 120px;
+  display: flex; flex-direction: column; transition: all 0.2s; position: relative;
+}
+.ninebox-cell-header { font-size: 11px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; opacity: 0.7; }
+.ninebox-cell-count { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.ninebox-cell-names { flex: 1; overflow: hidden; }
+.emp-tag {
+  display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 4px;
+  font-size: 12px; cursor: pointer; background: rgba(255,255,255,0.85);
+  transition: all 0.15s; white-space: nowrap;
+}
+.emp-tag:hover { background: var(--primary); color: #fff; transform: scale(1.05); }
+.ninebox-cell-more { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+/* Nine-box cell colors — matched to Excel numbering convention */
+.nb-1 { background: #B71C1C; color: #fff; } /* 高潜·高绩 核心明星 */
+.nb-2 { background: #E53935; color: #fff; } /* 中潜·高绩 绩效明星 */
+.nb-3 { background: #FF5722; color: #fff; } /* 低潜·高绩 绩效稳定 */
+.nb-4 { background: #FF9800; color: #fff; } /* 高潜·中绩 明星苗子 */
+.nb-5 { background: #FFC107; color: #333; } /* 中潜·中绩 中坚力量 */
+.nb-6 { background: #FFEB3B; color: #333; } /* 低潜·中绩 需激励 */
+.nb-7 { background: #FFF59D; color: #333; } /* 高潜·低绩 需关注 */
+.nb-8 { background: #FFF9C4; color: #333; } /* 中潜·低绩 需改进 */
+.nb-9 { background: #FFFFFF; color: #999; border: 2px solid #eee; } /* 低潜·低绩 需淘汰/转岗 */
+
+/* ===== Tooltip ===== */
+.tooltip-box {
+  position: fixed; background: #fff; border: 1px solid var(--border-color);
+  border-radius: var(--radius); padding: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 999; max-width: 280px; font-size: 13px; display: none;
+}
+.tooltip-box .tt-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.tooltip-box .tt-row { display: flex; gap: 8px; margin-bottom: 3px; }
+.tooltip-box .tt-label { color: var(--text-secondary); min-width: 50px; }
+
+/* ===== Department Architecture ===== */
+.dept-layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; }
+.dept-list-panel {
+  background: var(--card-bg); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--card-shadow); max-height: 600px; overflow-y: auto;
+}
+.dept-list-item {
+  padding: 10px 12px; cursor: pointer; border-radius: 6px; font-size: 14px;
+  transition: all 0.15s; display: flex; align-items: center; gap: 8px;
+}
+.dept-list-item:hover { background: var(--primary-light); }
+.dept-list-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+.dept-list-item .dept-count { color: var(--text-secondary); font-size: 12px; }
+.dept-detail-panel { min-height: 400px; }
+.dept-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.dept-kpi-mini {
+  background: var(--card-bg); border-radius: var(--radius); padding: 14px;
+  box-shadow: var(--card-shadow); text-align: center;
+}
+.dept-kpi-mini .dk-val { font-size: 22px; font-weight: 700; }
+.dept-kpi-mini .dk-lbl { font-size: 12px; color: var(--text-secondary); }
+/* Pyramid */
+.pyramid-container { display: flex; justify-content: center; align-items: center; padding: 20px; }
+.pyramid {
+  width: 100%; max-width: 600px; position: relative;
+}
+.pyramid-layer {
+  margin: 0 auto; padding: 16px; text-align: center; position: relative; border-radius: var(--radius);
+  margin-bottom: 12px; min-height: 80px;
+}
+.pyramid-layer.top { width: 40%; background: var(--primary-dark); color: #fff; }
+.pyramid-layer.mid { width: 60%; background: var(--primary); color: #fff; }
+.pyramid-layer.bottom { width: 80%; background: var(--primary-light); color: var(--text-primary); }
+.pyramid-layer-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.pyramid-layer-members { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pyramid-member {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  border-radius: 4px; font-size: 12px; cursor: pointer; background: rgba(255,255,255,0.3);
+}
+.pyramid-member.key { background: rgba(255,215,0,0.4); border: 1px solid #ffd700; }
+.pyramid-member:hover { background: rgba(255,255,255,0.6); }
+.pyramid-member i { font-size: 10px; }
+
+/* ===== Succession Page ===== */
+.succession-filter-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.succession-filter-row select {
+  padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius);
+  background: var(--card-bg); font-size: 14px;
+}
+.positions-table {
+  width: 100%; border-collapse: collapse; background: var(--card-bg);
+  border-radius: var(--radius); box-shadow: var(--card-shadow); overflow: hidden;
+}
+.positions-table th {
+  background: var(--primary-light); padding: 12px 16px; font-size: 13px;
+  font-weight: 600; text-align: left; color: var(--primary-dark);
+}
+.positions-table td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+.positions-table tr:hover td { background: #f8f9fa; }
+.positions-table tr.expanded td { background: #f0f4ff; }
+.candidate-detail { padding: 16px; background: #f8f9ff; display: none; }
+.candidate-detail.show { display: block; }
+.readiness-indicator {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.readiness-dot {
+  width: 24px; height: 24px; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 10px; color: #fff;
+}
+.readiness-dot.ready { background: var(--success); }
+.readiness-dot.one-year { background: #8bc34a; }
+.readiness-dot.two-year { background: var(--warning); }
+.readiness-dot.long-term { background: #ff9800; }
+.readiness-dot.none { background: var(--danger); }
+.status-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px;
+}
+.status-badge.green { background: #e8f5e9; color: #2e7d32; }
+.status-badge.yellow { background: #fff8e1; color: #f57f17; }
+.status-badge.red { background: #ffebee; color: #c62828; }
+
+/* ===== Profile Cards ===== */
+.profile-search-bar {
+  display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.profile-search-bar input {
+  flex: 1; min-width: 200px; padding: 10px 16px; border: 1px solid var(--border-color);
+  border-radius: var(--radius); font-size: 14px;
+}
+.profile-search-bar select {
+  padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius);
+  background: var(--card-bg); font-size: 14px;
+}
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.profile-card {
+  background: var(--card-bg); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--card-shadow); cursor: pointer; transition: all 0.2s;
+}
+.profile-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-2px); }
+.profile-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.profile-avatar {
+  width: 48px; height: 48px; border-radius: 50%; background: var(--primary-light);
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+  color: var(--primary); font-weight: 600;
+}
+.profile-card-name { font-size: 15px; font-weight: 600; }
+.profile-card-id { font-size: 12px; color: var(--text-secondary); }
+.profile-card-info { font-size: 13px; line-height: 1.6; }
+.profile-card-info .info-row { display: flex; justify-content: space-between; }
+.profile-card-info .info-label { color: var(--text-secondary); }
+.profile-card-divider { border: none; border-top: 1px solid var(--border-color); margin: 10px 0; }
+.profile-card-tags { display: flex; gap: 6px; margin-top: 8px; }
+.profile-tag {
+  padding: 2px 8px; border-radius: 4px; font-size: 11px;
+}
+.profile-tag.tier { background: var(--primary-light); color: var(--primary); }
+.profile-tag.risk-high { background: #ffebee; color: #c62828; }
+.profile-tag.risk-mid { background: #fff8e1; color: #f57f17; }
+.profile-tag.risk-low { background: #e8f5e9; color: #2e7d32; }
+.profile-tag.key { background: #fff3e0; color: #e65100; }
+.profile-card-footer { margin-top: 10px; font-size: 13px; color: var(--primary); text-align: right; }
+
+/* ===== Full Profile Modal ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-content {
+  background: var(--card-bg); border-radius: 12px; width: 90%; max-width: 720px;
+  max-height: 85vh; overflow-y: auto; padding: 24px; position: relative;
+}
+.modal-close {
+  position: absolute; top: 12px; right: 12px; background: none; border: none;
+  font-size: 24px; cursor: pointer; color: var(--text-secondary);
+}
+.full-profile-header { display: flex; gap: 20px; margin-bottom: 20px; align-items: center; }
+.full-profile-avatar {
+  width: 72px; height: 72px; border-radius: 50%; background: var(--primary-light);
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+  color: var(--primary); font-weight: 600;
+}
+.full-profile-title h3 { font-size: 20px; font-weight: 600; }
+.full-profile-title p { font-size: 14px; color: var(--text-secondary); }
+.full-profile-section { margin-bottom: 20px; }
+.full-profile-section h4 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--primary-dark); border-bottom: 2px solid var(--primary-light); padding-bottom: 6px; }
+.full-profile-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 13px; }
+.fpi-row { display: flex; justify-content: space-between; padding: 4px 0; }
+.fpi-label { color: var(--text-secondary); }
+.fpi-value { font-weight: 500; }
+/* Mini nine-box in profile */
+.mini-ninebox { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; width: 180px; height: 180px; margin: 12px auto; }
+.mini-nb-cell { border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; opacity: 0.4; }
+.mini-nb-cell.highlighted { opacity: 1; border: 2px solid var(--primary); font-weight: 700; box-shadow: 0 0 8px rgba(26,115,232,0.4); }
+
+/* ===== Import Modal ===== */
+.import-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.import-modal-overlay.show { display: flex; }
+.import-modal {
+  background: var(--card-bg); border-radius: 12px; width: 90%; max-width: 600px;
+  padding: 24px; position: relative;
+}
+.import-modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.import-zone {
+  border: 2px dashed var(--border-color); border-radius: var(--radius);
+  padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.import-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+.import-zone i { font-size: 36px; color: var(--primary); margin-bottom: 12px; }
+.import-zone p { font-size: 14px; color: var(--text-secondary); }
+.import-preview {
+  max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color);
+  border-radius: var(--radius); margin-bottom: 16px;
+}
+.import-preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.import-preview th { background: var(--primary-light); padding: 6px 8px; text-align: left; }
+.import-preview td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); }
+.import-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.btn {
+  padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer;
+  font-size: 14px; transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-secondary { background: #e5e7eb; color: var(--text-primary); }
+.btn-secondary:hover { background: #d1d5db; }
+.import-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-260px); }
+  .sidebar.open { transform: translateX(0); }
+  .content { margin-left: 0; }
+  .mobile-toggle { display: block; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row, .charts-row-3 { grid-template-columns: 1fr; }
+  .dept-layout { grid-template-columns: 1fr; }
+  .ninebox-wrapper { flex-direction: column; }
+  .ninebox-axis-labels { width: auto; flex-direction: row; }
+  .profile-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== Misc ===== */
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--text-secondary);
+}
+.empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+.empty-state p { font-size: 16px; margin-bottom: 8px; }
+.empty-state small { font-size: 13px; }
+.badge-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; border-radius: 50%;
+  font-size: 10px; min-width: 18px; height: 18px; padding: 0 4px;
+}
+.tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+.tab-btn {
+  padding: 8px 16px; border: 1px solid var(--border-color); border-radius: var(--radius);
+  background: var(--card-bg); cursor: pointer; font-size: 13px; transition: all 0.15s;
+}
+.tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.experience-tag {
+  display: inline-block; padding: 4px 10px; margin: 2px; border-radius: 4px;
+  font-size: 12px; background: #e8f0fe; color: var(--primary-dark);
+}
+.training-tag {
+  display: inline-block; padding: 4px 10px; margin: 2px; border-radius: 4px;
+  font-size: 12px; background: #fff3e0; color: #e65100;
+}
+</style>
+</head>
+<body>
+
+<!-- Mobile Toggle -->
+<button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <img src="nabati-logo.png" alt="Nabati Logo">
+    <h1 data-i18n="logo_title">Nabati</h1>
+    <p data-i18n="logo_subtitle">人才梯队</p>
+    <div class="lang-toggle">
+      <button class="lang-toggle-btn active" id="lang-zh" onclick="I18nModule.switch('zh')">中文</button>
+      <button class="lang-toggle-btn" id="lang-en" onclick="I18nModule.switch('en')">EN</button>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="overview"><i class="fas fa-chart-line"></i><span data-i18n="nav_overview">总览</span></div>
+    <div class="nav-item" data-page="ninebox"><i class="fas fa-th"></i><span data-i18n="nav_ninebox">人才九宫格</span></div>
+    <div class="nav-item" data-page="department"><i class="fas fa-sitemap"></i><span data-i18n="nav_department">部门架构</span></div>
+    <div class="nav-item" data-page="succession"><i class="fas fa-key"></i><span data-i18n="nav_succession">关键岗位</span></div>
+    <div class="nav-item" data-page="profiles"><i class="fas fa-user-circle"></i><span data-i18n="nav_profiles">个人档案</span></div>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="sidebar-btn" onclick="ImportModule.showModal()"><i class="fas fa-file-import"></i><span data-i18n="btn_import">导入 Excel 数据</span></button>
+    <button class="sidebar-btn" onclick="DataModule.exportTemplate()"><i class="fas fa-download"></i><span data-i18n="btn_template">下载导入模板</span></button>
+  </div>
+</aside>
+
+<!-- Content Area -->
+<div class="content">
+  <!-- Overview Page -->
+  <div class="page-container active" id="page-overview">
+    <div class="page-header"><h2 data-i18n="nav_overview">总览</h2></div>
+    <div id="overview-kpi" class="kpi-grid"></div>
+    <div class="charts-row">
+      <div class="chart-card"><h3 data-i18n="chart_dept_dist">各部门人才梯队分布</h3><canvas id="chart-dept-distribution"></canvas></div>
+      <div class="chart-card"><h3 data-i18n="chart_region_dist">各区域人才分布</h3><canvas id="chart-region-distribution"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><h3 data-i18n="chart_tier_dist">人才梯队分布</h3><canvas id="chart-tier-distribution"></canvas></div>
+      <div class="chart-card"><h3 data-i18n="chart_risk_dist">离职风险分布</h3><canvas id="chart-risk-distribution" style="max-height:300px;"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><h3 data-i18n="chart_edu_dist">学历分布</h3><canvas id="chart-edu-distribution"></canvas></div>
+      <div class="chart-card"><h3>年龄分布</h3><canvas id="chart-age-distribution" style="max-height:300px;"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Nine-Box Page -->
+  <div class="page-container" id="page-ninebox">
+    <div class="page-header"><h2 data-i18n="nav_ninebox">人才九宫格</h2></div>
+    <div class="ninebox-controls">
+      <select id="ninebox-dept-filter" onchange="NineBoxModule.filterByDept(this.value)">
+        <option value="all" data-i18n="filter_all_dept">全部部门</option>
+      </select>
+      <select id="ninebox-region-filter" onchange="NineBoxModule.filterByRegion(this.value)">
+        <option value="all" data-i18n="filter_all_region">全部区域</option>
+      </select>
+      <span class="nb-axis-hint" style="font-size:13px;color:var(--text-secondary)" data-i18n="nb_axis_hint"></span>
+    </div>
+    <div class="ninebox-wrapper" id="ninebox-wrapper"></div>
+  </div>
+
+  <!-- Department Page -->
+  <div class="page-container" id="page-department">
+    <div class="page-header"><h2 data-i18n="nav_department">部门人才架构</h2></div>
+    <div class="dept-layout" id="dept-layout"></div>
+  </div>
+
+  <!-- Succession Page -->
+  <div class="page-container" id="page-succession">
+    <div class="page-header"><h2 data-i18n="nav_succession">关键岗位与继任</h2></div>
+    <div class="succession-filter-row" id="succession-filters"></div>
+    <div id="succession-content"></div>
+  </div>
+
+  <!-- Profiles Page -->
+  <div class="page-container" id="page-profiles">
+    <div class="page-header"><h2 data-i18n="nav_profiles">个人档案</h2></div>
+    <div class="profile-search-bar" id="profile-search-bar"></div>
+    <div class="profile-grid" id="profile-grid"></div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip-box" id="tooltip"></div>
+
+<!-- Full Profile Modal -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal-content" id="profile-modal-content"></div>
+</div>
+
+<!-- Import Modal -->
+<div class="import-modal-overlay" id="import-modal">
+  <div class="import-modal">
+    <h3><i class="fas fa-file-import"></i> <span data-i18n="btn_import">导入 Excel 数据</span></h3>
+    <div class="import-error" id="import-error"></div>
+    <div class="import-zone" onclick="document.getElementById('import-file').click()">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <p data-i18n="import_drop">点击此处或拖拽 Excel 文件到此处</p>
+      <p style="font-size:12px;margin-top:8px;" data-i18n="import_format">支持 .xlsx / .xls / .csv 格式</p>
+      <input type="file" id="import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="ImportModule.handleFileSelect(event)">
+    </div>
+    <div class="import-preview" id="import-preview" style="display:none;"></div>
+    <div class="import-actions">
+      <button class="btn btn-secondary" onclick="ImportModule.hideModal()" data-i18n="btn_cancel">取消</button>
+      <button class="btn btn-primary" id="import-confirm-btn" onclick="ImportModule.confirmImport()" style="display:none;" data-i18n="btn_confirm">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+const AppState = {
+  employees: [],
+  currentPage: 'overview',
+  filters: { department: 'all', region: 'all', tier: 'all', nineBox: 'all', search: '' },
+  charts: {},
+  pendingImportData: null
+};
+
+// ============================================================
+// SAMPLE DATA — Nabati Talent Pipeline (102人，21字段)
+// Data source: 纳嬝帝团伟_人才管道导入模板.xlsx
+// ============================================================
+const SAMPLE_DATA = [
+  { name:'江梦婷', englishName:'Mengting Jiang', employeeId:'IN000891', department:'采购部', region:'HO', position:'Purchasing Supervisor', grade:'4A', joinDate:'2018-10-08', yearsOfService:7, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:34 },
+  { name:'张红', englishName:'Linda Zhang', employeeId:'IN001326', department:'采购部', region:'HO', position:'Purchasing Supervisor', grade:'4A', joinDate:'2022-02-14', yearsOfService:4, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'本科', age:45 },
+  { name:'陈磊', englishName:'Lei Chen', employeeId:'IN001174', department:'IT部', region:'HO', position:'IT Specialist', grade:'3C', joinDate:'2021-04-01', yearsOfService:5, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:40 },
+  { name:'金影', englishName:'Joey Jin', employeeId:'IN000112', department:'IT部', region:'HO', position:'IT Supervisor', grade:'4A', joinDate:'2017-02-27', yearsOfService:9, performance:'F', potential:'低潜力', talentTier:'低绩效', nineBoxPosition:9, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'本科', age:38 },
+  { name:'和佩璁', englishName:'Shazam He', employeeId:'IN001472', department:'法务部', region:'HO', position:'Legal Manager', grade:'5A', joinDate:'2022-07-07', yearsOfService:4, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'硕士', age:35 },
+  { name:'王伟', englishName:'Wei Wang', employeeId:'IN001666', department:'销售部', region:'KA', position:'OEM Project Head&Key Account Manager', grade:'5A', joinDate:'2024-09-23', yearsOfService:1, performance:'C', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:42 },
+  { name:'陶晶', englishName:'Justin Tao', employeeId:'IN001656', department:'研发部', region:'HO', position:'Head of R&D China, FMCG', grade:'5B', joinDate:'2024-09-02', yearsOfService:1, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'硕士', age:43 },
+  { name:'李玉红', englishName:'Candy Li', employeeId:'IN001522', department:'销售部', region:'East', position:'Sales Admin', grade:'3A', joinDate:'2023-03-29', yearsOfService:3, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'', education:'本科', age:30 },
+  { name:'马银平', englishName:'Maple Ma', employeeId:'IN001278', department:'财务部', region:'HO', position:'AnP Claim Executive', grade:'3B', joinDate:'2021-11-01', yearsOfService:4, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:46 },
+  { name:'孙菡', englishName:'Vicky Sun', employeeId:'IN001264', department:'财务部', region:'HO', position:'AnP Claim Executive', grade:'3A', joinDate:'2021-09-26', yearsOfService:4, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:46 },
+  { name:'范玲利', englishName:'Lingli Fan', employeeId:'IN001240', department:'财务部', region:'HO', position:'AnP Claim Executive', grade:'3A', joinDate:'2021-09-01', yearsOfService:4, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:46 },
+  { name:'陈林林', englishName:'Ella Chen', employeeId:'IN001217', department:'财务部', region:'HO', position:'Account Receivable Accountant', grade:'3B', joinDate:'2021-08-02', yearsOfService:4, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:32 },
+  { name:'蒋婷婷', englishName:'Tingting Jiang', employeeId:'IN001191', department:'财务部', region:'HO', position:'Cashier', grade:'3A', joinDate:'2021-06-28', yearsOfService:5, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'', education:'本科', age:28 },
+  { name:'陈红', englishName:'Maggie Chen', employeeId:'IN001080', department:'财务部', region:'HO', position:'Account Payable Accountant', grade:'3B', joinDate:'2020-04-07', yearsOfService:6, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:30 },
+  { name:'黄硕鑫', englishName:'Echo Huang', employeeId:'IN001022', department:'财务部', region:'HO', position:'AnP Claim Executive', grade:'3A', joinDate:'2019-09-02', yearsOfService:6, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:48 },
+  { name:'田政文', englishName:'Winnie Tian', employeeId:'IN001013', department:'财务部', region:'HO', position:'Financial Analyst Executive', grade:'3C', joinDate:'2019-08-26', yearsOfService:6, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:32 },
+  { name:'刘宁宁', englishName:'Ningning Liu', employeeId:'IN000976', department:'财务部', region:'HO', position:'AnP Claim Executive', grade:'3B', joinDate:'2019-05-27', yearsOfService:7, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:35 },
+  { name:'刘怡君', englishName:'Yijun Liu', employeeId:'IN000967', department:'财务部', region:'HO', position:'Account Receivable Accountant', grade:'3B', joinDate:'2019-05-05', yearsOfService:7, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:35 },
+  { name:'杨晶', englishName:'Joyce Yang', employeeId:'IN000630', department:'财务部', region:'HO', position:'Account Receivable Accountant', grade:'3A', joinDate:'2018-05-07', yearsOfService:8, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:40 },
+  { name:'郑佳瑜', englishName:'Jiayu Zheng', employeeId:'IN000476', department:'财务部', region:'HO', position:'FP&A Manager', grade:'5A', joinDate:'2018-03-05', yearsOfService:8, performance:'D', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:47 },
+  { name:'张莉', englishName:'Rita Zhang', employeeId:'IN000228', department:'财务部', region:'HO', position:'Finance Manager', grade:'5A', joinDate:'2017-08-18', yearsOfService:8, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:46 },
+  { name:'郁丽园', englishName:'Katty Yu', employeeId:'IN000034', department:'财务部', region:'HO', position:'Accounting and Tax Supervisor', grade:'4A', joinDate:'2016-04-18', yearsOfService:10, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:38 },
+  { name:'钟献芝', englishName:'Zoe Zhong', employeeId:'IN000028', department:'财务部', region:'HO', position:'Account Payable Accountant', grade:'3B', joinDate:'2016-02-17', yearsOfService:10, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:44 },
+  { name:'胡思寒', englishName:'Summer Hu', employeeId:'IN001573', department:'市场部', region:'HO', position:'Assistant Brand Manager', grade:'4C', joinDate:'2023-09-21', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'', education:'硕士', age:32 },
+  { name:'黄珊', englishName:'Susan Huang', employeeId:'IN001547', department:'市场部', region:'HO', position:'Assistant Brand Manager', grade:'4C', joinDate:'2023-07-17', yearsOfService:3, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'', education:'本科', age:32 },
+  { name:'翟晏静', englishName:'Brittney Zhai', employeeId:'IN001694', department:'市场部', region:'HO', position:'Marketing Activation Manager', grade:'5A', joinDate:'2025-03-03', yearsOfService:1, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'', education:'硕士', age:34 },
+  { name:'姜凯文', englishName:'Kevin Jiang', employeeId:'IN001720', department:'市场部', region:'HO', position:'Senior Brand Manager', grade:'5B', joinDate:'2025-06-23', yearsOfService:1, performance:'C', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'', education:'硕士', age:35 },
+  { name:'黄浪琪', englishName:'Mag Huang', employeeId:'IN001607', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3B', joinDate:'2024-04-01', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:29 },
+  { name:'罗粒城', englishName:'Charlie Luo', employeeId:'IN001600', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3B', joinDate:'2024-03-04', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:30 },
+  { name:'钟锦添', englishName:'Rock Zhong', employeeId:'IN001599', department:'供应链部', region:'HO', position:'Logistics Supervisor', grade:'4A', joinDate:'2024-02-26', yearsOfService:2, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:45 },
+  { name:'杜玥佳', englishName:'Gloria Du', employeeId:'IN001570', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3B', joinDate:'2023-09-12', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:28 },
+  { name:'杨蕾蕾', englishName:'Elaine Yang', employeeId:'IN001500', department:'供应链部', region:'HO', position:'Customer Service Executive', grade:'3B', joinDate:'2022-10-17', yearsOfService:3, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:29 },
+  { name:'刘志健', englishName:'Zhijian Liu', employeeId:'IN001492', department:'供应链部', region:'HO', position:'Logistics Supervisor', grade:'4A', joinDate:'2022-09-05', yearsOfService:3, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:44 },
+  { name:'俞丽丽', englishName:'Lily Yu', employeeId:'IN001333', department:'供应链部', region:'HO', position:'Importation Executive', grade:'3C', joinDate:'2022-03-01', yearsOfService:4, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:37 },
+  { name:'杨勇军', englishName:'Yongjun Yang', employeeId:'IN001296', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3B', joinDate:'2021-11-25', yearsOfService:4, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:37 },
+  { name:'李科', englishName:'Ke Li', employeeId:'IN001202', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3A', joinDate:'2021-07-06', yearsOfService:5, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'中专/职高', age:33 },
+  { name:'赵雪', englishName:'Eden Zhao', employeeId:'IN001182', department:'供应链部', region:'HO', position:'Logistics Supervisor', grade:'4A', joinDate:'2021-05-10', yearsOfService:5, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:41 },
+  { name:'朱娟英', englishName:'Ying Zhu', employeeId:'IN001167', department:'供应链部', region:'HO', position:'Logistics Executive', grade:'3A', joinDate:'2021-03-12', yearsOfService:5, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'中专/职高', age:47 },
+  { name:'周文静', englishName:'Wenjing Zhou', employeeId:'IN000995', department:'供应链部', region:'HO', position:'Importation Specialist', grade:'3C', joinDate:'2019-07-29', yearsOfService:6, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:30 },
+  { name:'刘丹', englishName:'Doris Liu', employeeId:'IN000960', department:'供应链部', region:'HO', position:'Sales Order Admin', grade:'3A', joinDate:'2019-04-23', yearsOfService:7, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:35 },
+  { name:'David 叶', englishName:'David 叶', employeeId:'IN000896', department:'供应链部', region:'HO', position:'SC Manager-Demand Planning', grade:'5B', joinDate:'2018-11-01', yearsOfService:7, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:52 },
+  { name:'赵银玲', englishName:'Vivi Zhao', employeeId:'IN000187', department:'供应链部', region:'HO', position:'Senior Damand planning & Importation Supervisor', grade:'4A', joinDate:'2017-08-01', yearsOfService:8, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:38 },
+  { name:'高佳星', englishName:'Alex Gao', employeeId:'IN000008', department:'供应链部', region:'HO', position:'Data Analyst Manager', grade:'5A', joinDate:'2015-02-02', yearsOfService:11, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:40 },
+  { name:'顾跃麟', englishName:'Yuelin Gu', employeeId:'IN001700', department:'供应链部', region:'HO', position:'Senior Logistics Supervisor', grade:'4A', joinDate:'2025-04-15', yearsOfService:1, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'本科', age:38 },
+  { name:'林铭芳', englishName:'Mingfang Lin', employeeId:'IN001679', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'4A', joinDate:'2024-11-18', yearsOfService:1, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:53 },
+  { name:'施芬', englishName:'Susi Shi', employeeId:'IN001658', department:'销售部', region:'EC&New Retail', position:'E-commerce Manager', grade:'4C', joinDate:'2024-08-26', yearsOfService:1, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:32 },
+  { name:'王昊', englishName:'Robin Wang', employeeId:'IN001613', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'4A', joinDate:'2024-04-17', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'硕士', age:33 },
+  { name:'张静', englishName:'Riya Zhang', employeeId:'IN001598', department:'销售部', region:'HO', position:'Sales Operation Executive', grade:'3B', joinDate:'2024-02-23', yearsOfService:2, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:31 },
+  { name:'刘大中', englishName:'Jagger Liu', employeeId:'IN001559', department:'销售部', region:'TM', position:'Sales Planner Manager', grade:'4B', joinDate:'2023-08-07', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:40 },
+  { name:'潘宝财', englishName:'Baocai Pan', employeeId:'IN001546', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4B', joinDate:'2023-07-10', yearsOfService:3, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:43 },
+  { name:'崔泽', englishName:'Michael Cui', employeeId:'IN001534', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4B', joinDate:'2023-05-22', yearsOfService:3, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:49 },
+  { name:'胡仕海', englishName:'Shihai Hu', employeeId:'IN001121', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4B', joinDate:'2023-05-08', yearsOfService:3, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:48 },
+  { name:'丁传卿', englishName:'Martin Ding', employeeId:'IN001473', department:'销售部', region:'EC&New Retail', position:'E-commerce Manager', grade:'4C', joinDate:'2022-07-11', yearsOfService:4, performance:'D', potential:'中潜力', talentTier:'低绩效', nineBoxPosition:8, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:44 },
+  { name:'何世东', englishName:'Andy He', employeeId:'IN001467', department:'销售部', region:'South', position:'Area Sales Manager Coordinator', grade:'5A', joinDate:'2022-06-20', yearsOfService:4, performance:'C', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:50 },
+  { name:'董恒文', englishName:'Alvin Dong', employeeId:'IN001443', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4C', joinDate:'2022-03-31', yearsOfService:4, performance:'D', potential:'低潜力', talentTier:'低绩效', nineBoxPosition:9, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:53 },
+  { name:'俞圆圆', englishName:'Yuanyuan Yu', employeeId:'IN001338', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'3C', joinDate:'2022-03-14', yearsOfService:4, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'沟通表达能力', turnoverRisk:'', education:'本科', age:32 },
+  { name:'蒋雨念', englishName:'Diego Jiang', employeeId:'IN001323', department:'销售部', region:'HO', position:'Assistant Sales Operations Manager', grade:'4C', joinDate:'2022-01-24', yearsOfService:4, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:36 },
+  { name:'王诗艺', englishName:'Betty Wang', employeeId:'IN001293', department:'销售部', region:'EC&New Retail', position:'Sales Admin', grade:'3B', joinDate:'2021-11-22', yearsOfService:4, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:34 },
+  { name:'江婷', englishName:'Kris Jiang', employeeId:'IN001287', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'4A', joinDate:'2021-11-10', yearsOfService:4, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'硕士', age:33 },
+  { name:'张圣洁', englishName:'Jinki Zhang', employeeId:'IN001277', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'4A', joinDate:'2021-11-01', yearsOfService:4, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'本科', age:39 },
+  { name:'詹建松', englishName:'Janson Zhan', employeeId:'IN001263', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4C', joinDate:'2021-09-26', yearsOfService:4, performance:'C', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:43 },
+  { name:'高春愉', englishName:'Jessie Gao', employeeId:'IN001180', department:'销售部', region:'TM', position:'National Sales Planner Manager', grade:'5B', joinDate:'2021-04-25', yearsOfService:5, performance:'D', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:37 },
+  { name:'鲍丙勇', englishName:'Bingyong Bao', employeeId:'IN001178', department:'销售部', region:'EC&New Retail', position:'E-commerce Manager', grade:'4C', joinDate:'2021-04-12', yearsOfService:5, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:36 },
+  { name:'李云飞', englishName:'Michael Li', employeeId:'IN001162', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4C', joinDate:'2021-02-18', yearsOfService:5, performance:'D', potential:'低潜力', talentTier:'低绩效', nineBoxPosition:9, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:50 },
+  { name:'吕伯膑', englishName:'Bobin Lv', employeeId:'IN001131', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4C', joinDate:'2020-10-19', yearsOfService:5, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:51 },
+  { name:'王鸿斌', englishName:'Hongbin Wang', employeeId:'IN001111', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4C', joinDate:'2020-08-19', yearsOfService:5, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:46 },
+  { name:'陶正生', englishName:'Terry Tao', employeeId:'IN001110', department:'销售部', region:'East', position:'Area Sales Manager Coordinator', grade:'5B', joinDate:'2020-08-17', yearsOfService:5, performance:'C', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'', education:'硕士', age:38 },
+  { name:'田艳飞', englishName:'Yanfei Tian', employeeId:'IN001098', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4B', joinDate:'2020-06-11', yearsOfService:6, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:49 },
+  { name:'何知科', englishName:'Zhike He', employeeId:'IN001071', department:'销售部', region:'HO', position:'Senior National Sales Operation Manager', grade:'5B', joinDate:'2020-01-02', yearsOfService:6, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:48 },
+  { name:'范文平', englishName:'Anita Fan', employeeId:'IN001069', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'4A', joinDate:'2019-12-26', yearsOfService:6, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'本科', age:46 },
+  { name:'周杰', englishName:'Jie Zhou', employeeId:'IN001065', department:'销售部', region:'East', position:'Area Sales Manager', grade:'4B', joinDate:'2019-12-02', yearsOfService:6, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:52 },
+  { name:'钱晨莉', englishName:'Chenli Qian', employeeId:'IN001059', department:'销售部', region:'KA', position:'Key Account Manager-Execution', grade:'4C', joinDate:'2019-11-11', yearsOfService:6, performance:'C', potential:'低潜力', talentTier:'高绩效', nineBoxPosition:3, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:60 },
+  { name:'李幸金', englishName:'Xingjin Li', employeeId:'IN001056', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4B', joinDate:'2019-11-04', yearsOfService:6, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:51 },
+  { name:'林粉香', englishName:'Fenxiang Lin', employeeId:'IN001031', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'3B', joinDate:'2019-09-16', yearsOfService:6, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:41 },
+  { name:'张辉', englishName:'Hui Zhang', employeeId:'IN000990', department:'销售部', region:'East', position:'Area Sales Manager', grade:'4C', joinDate:'2019-07-15', yearsOfService:7, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:46 },
+  { name:'韩松淮', englishName:'Peate Han', employeeId:'IN000945', department:'销售部', region:'Wholesale', position:'National Wholesale Channel Manager', grade:'5A', joinDate:'2019-03-11', yearsOfService:7, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:50 },
+  { name:'赵凤洁', englishName:'Vicky Zhao', employeeId:'IN000938', department:'供应链部', region:'HO', position:'Sales Order Admin Leader', grade:'3C', joinDate:'2019-02-11', yearsOfService:7, performance:'B', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'沟通表达能力', turnoverRisk:'低', education:'本科', age:37 },
+  { name:'张深', englishName:'Shen Zhang', employeeId:'IN000898', department:'销售部', region:'North-West', position:'Area Sales Manager Coordinator', grade:'5A', joinDate:'2018-10-17', yearsOfService:7, performance:'D', potential:'高潜力', talentTier:'高绩效', nineBoxPosition:1, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'大专', age:42 },
+  { name:'陈鸿雁', englishName:'Hongyan Chen', employeeId:'IN000700', department:'销售部', region:'KA', position:'Key Account Supervisor', grade:'4A', joinDate:'2018-06-04', yearsOfService:8, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'', education:'本科', age:39 },
+  { name:'赵以利', englishName:'Yili Zhao', employeeId:'IN000558', department:'销售部', region:'North-West', position:'Area Sales Manager', grade:'4B', joinDate:'2018-04-18', yearsOfService:8, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'大专', age:47 },
+  { name:'孙清清', englishName:'Qingqing Sun', employeeId:'IN000292', department:'销售部', region:'TM', position:'Sales planner Executive', grade:'3A', joinDate:'2018-05-02', yearsOfService:8, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:40 },
+  { name:'朱雪娇', englishName:'Xuejiao Zhu', employeeId:'IN000162', department:'销售部', region:'TM', position:'Sales Planner Supervisor', grade:'3C', joinDate:'2017-06-19', yearsOfService:9, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:39 },
+  { name:'李党国', englishName:'Dangguo Li', employeeId:'IN000054', department:'销售部', region:'North-West', position:'Area Sales Supervisor', grade:'4A', joinDate:'2016-09-05', yearsOfService:9, performance:'C', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'数据分析力', turnoverRisk:'低', education:'大专', age:46 },
+  { name:'徐建平', englishName:'Jianping Xu', employeeId:'IN000154', department:'销售部', region:'East', position:'Area Sales Manager', grade:'4C', joinDate:'2017-05-22', yearsOfService:9, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:47 },
+  { name:'刘恒', englishName:'Heng Liu', employeeId:'IN000109', department:'销售部', region:'East', position:'Area Sales Supervisor', grade:'3B', joinDate:'2017-02-20', yearsOfService:9, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:37 },
+  { name:'曹卫明', englishName:'Weiming Cao', employeeId:'IN001636', department:'销售部', region:'North-West', position:'Area Sales Supervisor', grade:'3B', joinDate:'2024-07-01', yearsOfService:2, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'中专/职高', age:45 },
+  { name:'刘华明', englishName:'Huaming Liu', employeeId:'IN000150', department:'销售部', region:'South', position:'Area Sales Manager', grade:'4B', joinDate:'2017-05-08', yearsOfService:9, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'中专/职高', age:48 },
+  { name:'刘志杰', englishName:'Zhijie Liu', employeeId:'IN001670', department:'销售部', region:'North-West', position:'Area Sales Supervisor', grade:'3B', joinDate:'2024-09-24', yearsOfService:1, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:43 },
+  { name:'陈焕勇', englishName:'Huanyong Chen', employeeId:'IN001703', department:'销售部', region:'North-West', position:'Senior Area Sales Supervisor', grade:'3C', joinDate:'2025-04-07', yearsOfService:1, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:38 },
+  { name:'陶敏', englishName:'Tom Tao', employeeId:'IN001712', department:'销售部', region:'East', position:'Senior Area Sales Supervisor', grade:'3C', joinDate:'2025-06-09', yearsOfService:1, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'沟通表达能力', turnoverRisk:'', education:'本科', age:41 },
+  { name:'梁安华', englishName:'Anhua Liang', employeeId:'IN000742', department:'销售部', region:'South', position:'Area Sales Supervisor', grade:'3B', joinDate:'2018-07-09', yearsOfService:8, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'高中', age:45 },
+  { name:'苏颖', englishName:'Ying Su', employeeId:'IN001705', department:'销售部', region:'South', position:'Senior Area Sales Supervisor', grade:'3C', joinDate:'2025-04-14', yearsOfService:1, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:44 },
+  { name:'鲍云梅', englishName:'Yunmei Bao', employeeId:'IN000215', department:'销售部', region:'KA', position:'Senior Key Account Supervisor', grade:'3C', joinDate:'2017-08-10', yearsOfService:8, performance:'D', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:44 },
+  { name:'王相玉', englishName:'Xiangyu Wang', employeeId:'IN001255', department:'销售部', region:'KA', position:'Key Account Supervisor', grade:'3C', joinDate:'2021-09-22', yearsOfService:4, performance:'C', potential:'中潜力', talentTier:'高绩效', nineBoxPosition:2, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'', education:'本科', age:38 },
+  { name:'易定一', englishName:'Dingyi Yi', employeeId:'IN001680', department:'销售部', region:'KA', position:'Key Account Supervisor', grade:'3B', joinDate:'2024-12-04', yearsOfService:1, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:37 },
+  { name:'蔡菲', englishName:'Fei Cai', employeeId:'IN000113', department:'销售部', region:'North-West', position:'Sales Admin', grade:'3B', joinDate:'2017-02-27', yearsOfService:9, performance:'D', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'本科', age:45 },
+  { name:'潘巍', englishName:'Wei Pan', employeeId:'IN000539', department:'销售部', region:'East', position:'Senior Area Sales Supervisor', grade:'3C', joinDate:'2018-04-08', yearsOfService:8, performance:'C', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:51 },
+  { name:'陈思敏', englishName:'Sinmy Chen', employeeId:'IN000101', department:'销售部', region:'South', position:'Sales Admin', grade:'3A', joinDate:'2016-12-26', yearsOfService:9, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:40 },
+  { name:'李荣晓', englishName:'Rongxiao Li', employeeId:'IN001625', department:'销售部', region:'East', position:'Area Sales Supervisor', grade:'3B', joinDate:'2024-05-16', yearsOfService:2, performance:'D', potential:'低潜力', talentTier:'中绩效', nineBoxPosition:6, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'核心胜任力', turnoverRisk:'低', education:'大专', age:47 },
+  { name:'任思旭', englishName:'Owen Ren', employeeId:'IN001655', department:'销售部', region:'HO', position:'RTM Supervisor', grade:'4A', joinDate:'2024-08-21', yearsOfService:1, performance:'D', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:4, isKeyPosition:true, hasSuccessor:true, successorName:'', keyExperience:'', trainingNeeds:'沟通表达能力', turnoverRisk:'', education:'本科', age:29 },
+  { name:'樊春胜', englishName:'Eric Fan', employeeId:'IN001701', department:'销售部', region:'EC&New Retail', position:'Head of EC& New Retail', grade:'5B', joinDate:'2025-04-07', yearsOfService:1, performance:'C', potential:'高潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'领导力培训', turnoverRisk:'低', education:'本科', age:41 },
+  { name:'王文逸', englishName:'Wenyi Wang', employeeId:'IN001718', department:'销售部', region:'EC&New Retail', position:'New Retail Manager', grade:'4B', joinDate:'2025-06-23', yearsOfService:1, performance:'B', potential:'中潜力', talentTier:'中绩效', nineBoxPosition:5, isKeyPosition:false, hasSuccessor:false, successorName:'', keyExperience:'', trainingNeeds:'团队管理能力', turnoverRisk:'低', education:'本科', age:36 },
+];
+
+
+// ============================================================
+// DATA MODULE
+// ============================================================
+const DataModule = {
+  // Excel column name mapping
+  fieldMap: {
+    '姓名': 'name', '英文名': 'englishName', '工号': 'employeeId', '部门': 'department', '区域': 'region',
+    '岗位': 'position', '职级': 'grade', '入职日期': 'joinDate', '入职年数': 'yearsOfService', '上年度绩效': 'performance',
+    '潜力评级': 'potential', '人才梯队': 'talentTier', '九宫格位置': 'nineBoxPosition',
+    '是否为关键岗位': 'isKeyPosition', '是否有继任者': 'hasSuccessor',
+    '继任者姓名': 'successorName', '关键经验': 'keyExperience',
+    '培训需求': 'trainingNeeds', '离职风险': 'turnoverRisk',
+    '学历': 'education', '年龄': 'age'
+  },
+
+  importExcel(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const parsed = DataModule.parseWorkbook(workbook);
+        if (parsed.length === 0) {
+          ImportModule.showError('未找到有效数据，请检查Excel格式');
+          return;
+        }
+        AppState.pendingImportData = parsed;
+        ImportModule.showPreview(parsed);
+      } catch(err) {
+        ImportModule.showError('文件解析失败: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  },
+
+  parseWorkbook(workbook) {
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { raw: false });
+    return rawRows.map(row => DataModule.mapFields(row)).filter(e => e.name);
+  },
+
+  mapFields(rawRow) {
+    const emp = {};
+    for (const [cnKey, engKey] of Object.entries(DataModule.fieldMap)) {
+      if (rawRow[cnKey] !== undefined) {
+        emp[engKey] = rawRow[cnKey];
+      }
+    }
+    // Normalize boolean fields
+    emp.isKeyPosition = (emp.isKeyPosition === 'TRUE' || emp.isKeyPosition === true || emp.isKeyPosition === '是' || emp.isKeyPosition === '1');
+    emp.hasSuccessor = (emp.hasSuccessor === 'TRUE' || emp.hasSuccessor === true || emp.hasSuccessor === '是' || emp.hasSuccessor === '1');
+    // Normalize nine-box position
+    emp.nineBoxPosition = DataModule.normalizeNineBox(emp.nineBoxPosition);
+    // Default values
+    if (!emp.turnoverRisk) emp.turnoverRisk = '低';
+    if (!emp.potential) emp.potential = '中';
+    if (!emp.performance) emp.performance = 'B';
+    if (!emp.talentTier) emp.talentTier = '低绩效';
+    if (!emp.keyExperience) emp.keyExperience = '';
+    if (!emp.trainingNeeds) emp.trainingNeeds = '';
+    if (!emp.successorName) emp.successorName = '';
+    return emp;
+  },
+
+  normalizeNineBox(value) {
+    if (value === undefined || value === null || value === '') return 5;
+    const num = parseInt(value);
+    if (num >= 1 && num <= 9) return num;
+    // Text descriptions mapping
+    const textMap = {
+      '低潜低绩': 1, '低潜中绩': 2, '低潜高绩': 3,
+      '中潜低绩': 4, '中潜中绩': 5, '中潜高绩': 6,
+      '高潜低绩': 7, '高潜中绩': 8, '高潜高绩': 9,
+      '1号格': 1, '2号格': 2, '3号格': 3,
+      '4号格': 4, '5号格': 5, '6号格': 6,
+      '7号格': 7, '8号格': 8, '9号格': 9,
+    };
+    const v = String(value).trim();
+    if (textMap[v]) return textMap[v];
+    return 5;
+  },
+
+  getFilteredEmployees() {
+    let list = AppState.employees;
+    const f = AppState.filters;
+    if (f.department !== 'all') list = list.filter(e => e.department === f.department);
+    if (f.region !== 'all') list = list.filter(e => e.region === f.region);
+    if (f.tier !== 'all') list = list.filter(e => e.talentTier === f.tier);
+    if (f.nineBox !== 'all') list = list.filter(e => e.nineBoxPosition === parseInt(f.nineBox));
+    if (f.search) {
+      const q = f.search.toLowerCase();
+      list = list.filter(e =>
+        e.name.toLowerCase().includes(q) ||
+        e.employeeId.toLowerCase().includes(q) ||
+        e.department.toLowerCase().includes(q) ||
+        e.region.toLowerCase().includes(q) ||
+        e.position.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  },
+
+  getDepartmentList() {
+    const depts = [...new Set(AppState.employees.map(e => e.department))];
+    return depts.sort();
+  },
+
+  getRegionList() {
+    const regions = [...new Set(AppState.employees.map(e => e.region))];
+    return regions.sort();
+  },
+
+  getStats() {
+    const emps = AppState.employees;
+    const total = emps.length;
+    const keyPositions = emps.filter(e => e.isKeyPosition);
+    const keyCount = keyPositions.length;
+    const coveredCount = keyPositions.filter(e => e.hasSuccessor).length;
+    const coverage = keyCount > 0 ? Math.round(coveredCount / keyCount * 100) : 0;
+    const highPot = emps.filter(e => e.talentTier === '低绩效').length;
+    const highPotRatio = total > 0 ? Math.round(highPot / total * 100) : 0;
+    return { total, keyCount, coveredCount, coverage, highPot, highPotRatio };
+  },
+
+  getDepartmentStats(dept) {
+    const emps = AppState.employees.filter(e => e.department === dept);
+    const total = emps.length;
+    const keyPositions = emps.filter(e => e.isKeyPosition);
+    const keyCount = keyPositions.length;
+    const coveredCount = keyPositions.filter(e => e.hasSuccessor).length;
+    const highPot = emps.filter(e => e.potential === '高').length;
+    const highPotRatio = total > 0 ? Math.round(highPot / total * 100) : 0;
+    const avgRisk = emps.filter(e => e.turnoverRisk === '高').length;
+    return { total, keyCount, coveredCount, coverage: keyCount > 0 ? Math.round(coveredCount / keyCount * 100) : 0, highPotRatio, avgRisk };
+  },
+
+  getKeyPositions() {
+    return AppState.employees.filter(e => e.isKeyPosition);
+  },
+
+  getSuccessorReadiness(emp) {
+    if (!emp.hasSuccessor || !emp.successorName) return 'none';
+    if (emp.successorName.includes('立即') || emp.successorName === 'ready') return 'ready';
+    if (emp.successorName.includes('1-2')) return 'one-year';
+    if (emp.successorName.includes('3-5')) return 'two-year';
+    if (emp.successorName.includes('长期')) return 'long-term';
+    // Legacy: try to find successor employee by name
+    const successor = AppState.employees.find(e => e.name === emp.successorName);
+    if (!successor) return 'none';
+    // Excel convention: 1=最优(高潜高绩), 9=最差(低潜低绩)
+    if (successor.nineBoxPosition <= 2) return 'ready';
+    if (successor.nineBoxPosition <= 4) return 'one-year';
+    return 'two-year';
+  },
+
+  exportTemplate() {
+    const headers = Object.keys(DataModule.fieldMap);
+    // Sample data matches new template format: dept in English, 九宫格 1=最优→9=最差
+    const sampleRow = ['张三', 'San Zhang', 'NB-2025-0001', 'Sales', 'East', '区域销售经理', '3B', '2021-03-15', 4, 'B', '高潜力', '高绩效', '1', 'TRUE', 'TRUE', '李四', '大区管理经验;渠道拓展', '领导力培训;数据分析', '低', '本科', 34];
+    const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '人才数据');
+    XLSX.writeFile(wb, '纳宝帝集团_人才管道导入模板.xlsx');
+  },
+
+  init() {
+    AppState.employees = SAMPLE_DATA.map(e => ({...e}));
+  }
+};
+
+// ============================================================
+// NAV MODULE
+// ============================================================
+const NavModule = {
+  init() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        NavModule.switchPage(item.dataset.page);
+      });
+    });
+  },
+
+  switchPage(pageName) {
+    AppState.currentPage = pageName;
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.page === pageName);
+    });
+    // Show/hide pages
+    document.querySelectorAll('.page-container').forEach(container => {
+      container.classList.toggle('active', container.id === 'page-' + pageName);
+    });
+    // Render page content
+    switch(pageName) {
+      case 'overview': OverviewModule.render(); break;
+      case 'ninebox': NineBoxModule.render(); break;
+      case 'department': DeptModule.render(); break;
+      case 'succession': SuccessionModule.render(); break;
+      case 'profiles': ProfileModule.render(); break;
+    }
+    // Close sidebar on mobile
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+  }
+};
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============================================================
+// OVERVIEW MODULE
+// ============================================================
+const OverviewModule = {
+  render() {
+    if (AppState.employees.length === 0) {
+      document.getElementById('overview-kpi').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>'+t('empty_data')+'</p><small>'+t('empty_data_hint')+'</small></div>';
+      return;
+    }
+    OverviewModule.renderKPICards();
+    OverviewModule.renderDeptDistribution();
+    OverviewModule.renderRegionDistribution();
+    OverviewModule.renderTierDistribution();
+    OverviewModule.renderRiskDistribution();
+    OverviewModule.renderEducationDistribution();
+    OverviewModule.renderAgeDistribution();
+  },
+
+  renderKPICards() {
+    const stats = DataModule.getStats();
+    const kpiHtml = `
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--primary)"><i class="fas fa-users"></i></div>
+        <div><div class="kpi-value">${stats.total}</div><div class="kpi-label">${t('kpi_total')}</div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--accent-warm)"><i class="fas fa-star"></i></div>
+        <div><div class="kpi-value">${stats.keyCount}</div><div class="kpi-label">${t('kpi_key_positions')}</div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--success)"><i class="fas fa-check-circle"></i></div>
+        <div><div class="kpi-value">${stats.coverage}%</div><div class="kpi-label">${t('kpi_coverage')}</div></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#9c27b0"><i class="fas fa-rocket"></i></div>
+        <div><div class="kpi-value">${stats.highPotRatio}%</div><div class="kpi-label">${t('kpi_high_pot')}</div></div>
+      </div>
+    `;
+    document.getElementById('overview-kpi').innerHTML = kpiHtml;
+  },
+
+  destroyChart(id) {
+    if (AppState.charts[id]) {
+      AppState.charts[id].destroy();
+      delete AppState.charts[id];
+    }
+  },
+
+  renderDeptDistribution() {
+    OverviewModule.destroyChart('deptDist');
+    const depts = DataModule.getDepartmentList();
+    // Use raw Chinese tier names for data matching (data stores Chinese)
+    const tierMap = { '高绩效': t('tier_top'), '中绩效': t('tier_mid'), '低绩效': t('tier_bottom') };
+    const tierKeys = ['高绩效', '中绩效', '低绩效'];
+    const tierColors = ['#0d47a1', '#1976d2', '#64b5f6'];
+    const otherColor = '#bbdefb';
+    const datasets = tierKeys.map((tierKey, i) => ({
+      label: tierMap[tierKey],
+      data: depts.map(d => AppState.employees.filter(e => e.department === d && e.talentTier === tierKey).length),
+      backgroundColor: tierColors[i]
+    }));
+    datasets.push({
+      label: I18nModule.lang === 'zh' ? '一般员工' : 'General Staff',
+      data: depts.map(d => AppState.employees.filter(e => e.department === d && !tierKeys.includes(e.talentTier)).length),
+      backgroundColor: otherColor
+    });
+    const ctx = document.getElementById('chart-dept-distribution').getContext('2d');
+    AppState.charts['deptDist'] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: depts, datasets },
+      options: {
+        indexAxis: 'y', responsive: true,
+        scales: { x: { stacked: true }, y: { stacked: true } },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+  },
+
+  renderRegionDistribution() {
+    OverviewModule.destroyChart('regionDist');
+    const regions = DataModule.getRegionList();
+    const tiers = ['高绩效', '中绩效', '低绩效'];
+    const tierColors = ['#0d47a1', '#1976d2', '#64b5f6'];
+    const otherColor = '#bbdefb';
+    const datasets = tiers.map((tier, i) => ({
+      label: tier,
+      data: regions.map(r => AppState.employees.filter(e => e.region === r && e.talentTier === tier).length),
+      backgroundColor: tierColors[i]
+    }));
+    datasets.push({
+      label: '一般员工',
+      data: regions.map(r => AppState.employees.filter(e => e.region === r && !tiers.includes(e.talentTier)).length),
+      backgroundColor: otherColor
+    });
+    const ctx = document.getElementById('chart-region-distribution').getContext('2d');
+    AppState.charts['regionDist'] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: regions, datasets },
+      options: {
+        indexAxis: 'y', responsive: true,
+        scales: { x: { stacked: true }, y: { stacked: true } },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+  },
+
+  renderTierDistribution() {
+    OverviewModule.destroyChart('tierDist');
+    const tiers = ['高绩效', '中绩效', '低绩效'];
+    const tierColors = ['#0d47a1', '#1976d2', '#64b5f6'];
+    const counts = tiers.map(t => AppState.employees.filter(e => e.talentTier === t).length);
+    const otherCount = AppState.employees.filter(e => !tiers.includes(e.talentTier)).length;
+    const ctx = document.getElementById('chart-tier-distribution').getContext('2d');
+    AppState.charts['tierDist'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: [...tiers, '一般员工'],
+        datasets: [{ data: [...counts, otherCount], backgroundColor: [...tierColors, '#bbdefb'], borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, cutout: '55%',
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: false }
+        }
+      }
+    });
+  },
+
+  renderRiskDistribution() {
+    OverviewModule.destroyChart('riskDist');
+    const risks = ['高', '中', '低'];
+    const riskColors = ['#f44336', '#ff9800', '#4caf50'];
+    const counts = risks.map(r => AppState.employees.filter(e => e.turnoverRisk === r).length);
+    const ctx = document.getElementById('chart-risk-distribution').getContext('2d');
+    AppState.charts['riskDist'] = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['高风险', '中风险', '低风险'],
+        datasets: [{ data: counts, backgroundColor: riskColors }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  },
+
+  renderPerformanceDistribution() {
+    OverviewModule.destroyChart('perfDist');
+    const perfLevels = ['S', 'A', 'B', 'C', 'D'];
+    const perfColors = ['#1b5e20', '#4caf50', '#8bc34a', '#ffc107', '#f44336'];
+    const counts = perfLevels.map(p => AppState.employees.filter(e => e.performance === p).length);
+    const ctx = document.getElementById('chart-performance-distribution').getContext('2d');
+    AppState.charts['perfDist'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: perfLevels,
+        datasets: [{ label: t('people_count', {n: ''}), data: counts, backgroundColor: perfColors }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  },
+
+  renderEducationDistribution() {
+    OverviewModule.destroyChart('eduDist');
+    const eduOrder = ['硕士', '本科', '大专', '中专/职高', '高中'];
+    const eduColors = ['#7B1FA2', '#1976D2', '#0288D1', '#0097A7', '#00796B'];
+    const eduLabelsEn = ["Master's", "Bachelor's", "College", "Vocational", "High School"];
+    const counts = eduOrder.map(edu => AppState.employees.filter(e => e.education === edu).length);
+    // Also count any uncategorized
+    const otherCount = AppState.employees.filter(e => e.education && !eduOrder.includes(e.education)).length;
+    if (otherCount > 0) { eduOrder.push('其他'); eduColors.push('#9E9E9E'); eduLabelsEn.push('Other'); counts.push(otherCount); }
+    const displayLang = I18nModule.lang;
+    const labels = displayLang === 'en' ? (eduLabelsEn.concat(otherCount > 0 ? ['Other'] : [])) : eduOrder;
+    const ctx = document.getElementById('chart-edu-distribution').getContext('2d');
+    AppState.charts['eduDist'] = new Chart(ctx, {
+      type: 'pie',
+      data: { labels, datasets: [{ data: counts, backgroundColor: eduColors }] },
+      options: { responsive: true, plugins: { legend: { position: 'right' } } }
+    });
+  },
+
+  renderAgeDistribution() {
+    OverviewModule.destroyChart('ageDist');
+    const emps = AppState.employees;
+    const ageGroups = [
+      { label: '<=30', min: 0, max: 30 }, { label: '31-35', min: 31, max: 35 },
+      { label: '36-40', min: 36, max: 40 }, { label: '41-45', min: 41, max: 45 },
+      { label: '46-50', min: 46, max: 50 }, { label: '>50', min: 51, max: 100 }
+    ];
+    const ageColors = ['#42A5F5', '#26C6DA', '#26A69A', '#66BB6A', '#FFA726', '#EF5350'];
+    const counts = ageGroups.map(g => emps.filter(e => e.age >= g.min && e.age <= g.max).length);
+    const ctx = document.getElementById('chart-age-distribution').getContext('2d');
+    AppState.charts['ageDist'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ageGroups.map(g => g.label),
+        datasets: [{ label: I18nModule.lang === 'zh' ? '人数' : 'Count', data: counts, backgroundColor: ageColors }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  }
+};
+
+// ============================================================
+// NINE-BOX MODULE
+// ============================================================
+const NineBoxModule = {
+  // Nine-box cell definitions
+  // Excel 编号规则: Y=潜力(row0=高), X=绩效(col0=低), 编号按列从右到左
+  // 1=高潜高绩(右上)→9=低潜低绩(左下)
+  cells: [
+    { id: 1, label: '高潜·高绩', desc: '核心明星', row: 0, col: 2 },
+    { id: 2, label: '中潜·高绩', desc: '绩效明星', row: 1, col: 2 },
+    { id: 3, label: '低潜·高绩', desc: '绩效稳定', row: 2, col: 2 },
+    { id: 4, label: '高潜·中绩', desc: '明星苗子', row: 0, col: 1 },
+    { id: 5, label: '中潜·中绩', desc: '中坚力量', row: 1, col: 1 },
+    { id: 6, label: '低潜·中绩', desc: '需激励', row: 2, col: 1 },
+    { id: 7, label: '高潜·低绩', desc: '需关注', row: 0, col: 0 },
+    { id: 8, label: '中潜·低绩', desc: '需改进', row: 1, col: 0 },
+    { id: 9, label: '低潜·低绩', desc: '需淘汰/转岗', row: 2, col: 0 },
+  ],
+
+  render() {
+    if (AppState.employees.length === 0) {
+      document.getElementById('ninebox-wrapper').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+      return;
+    }
+    NineBoxModule.renderDeptFilterOptions();
+    NineBoxModule.buildGrid();
+  },
+
+  renderDeptFilterOptions() {
+    const select = document.getElementById('ninebox-dept-filter');
+    const depts = DataModule.getDepartmentList();
+    select.innerHTML = '<option value="all">全部部门</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    const regionSelect = document.getElementById('ninebox-region-filter');
+    if (regionSelect) {
+      const regions = DataModule.getRegionList();
+      regionSelect.innerHTML = '<option value="all">全部区域</option>' + regions.map(r => `<option value="${r}">${r}</option>`).join('');
+    }
+  },
+
+  filterByDept(dept) {
+    AppState.filters.department = dept === 'all' ? 'all' : dept;
+    NineBoxModule.populateCells();
+  },
+
+  filterByRegion(region) {
+    AppState.filters.region = region === 'all' ? 'all' : region;
+    NineBoxModule.populateCells();
+  },
+
+  buildGrid() {
+    const wrapper = document.getElementById('ninebox-wrapper');
+    wrapper.innerHTML = `
+      <div class="ninebox-axis-labels">
+        <div style="font-size:12px;color:var(--text-secondary);text-align:center;margin-bottom:8px;">潜力</div>
+        <div style="display:flex;flex-direction:column;justify-content:space-around;flex:1;">
+          <span style="font-size:11px;font-weight:600;">高潜力</span>
+          <span style="font-size:11px;font-weight:600;">中潜力</span>
+          <span style="font-size:11px;font-weight:600;">低潜力</span>
+        </div>
+      </div>
+      <div class="ninebox-grid-outer">
+        <div class="axis-label-horizontal">绩效 &rarr;</div>
+        <div style="display:flex;justify-content:space-around;margin-bottom:4px;">
+          <span style="font-size:11px;font-weight:600;color:var(--text-secondary);">低绩效</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text-secondary);">中绩效</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text-secondary);">高绩效</span>
+        </div>
+        <div class="ninebox-grid" id="ninebox-grid"></div>
+      </div>
+    `;
+    NineBoxModule.populateCells();
+  },
+
+  populateCells() {
+    const grid = document.getElementById('ninebox-grid');
+    if (!grid) return;
+    let emps = AppState.employees;
+    if (AppState.filters.department !== 'all')
+      emps = emps.filter(e => e.department === AppState.filters.department);
+    if (AppState.filters.region !== 'all')
+      emps = emps.filter(e => e.region === AppState.filters.region);
+
+    grid.innerHTML = '';
+    for (const cell of NineBoxModule.cells) {
+      const cellEmps = emps.filter(e => e.nineBoxPosition === cell.id);
+      const maxShow = 6;
+      const showing = cellEmps.slice(0, maxShow);
+      const more = cellEmps.length - maxShow;
+
+      let namesHtml = showing.map(e =>
+        `<span class="emp-tag" onclick="ProfileModule.showFullProfile('${e.employeeId}')" onmouseover="NineBoxModule.showTooltip('${e.employeeId}', event)" onmouseout="NineBoxModule.hideTooltip()">${e.name}</span>`
+      ).join('');
+
+      let moreHtml = more > 0 ? `<div class="ninebox-cell-more">+${more}人</div>` : '';
+
+      grid.innerHTML += `
+        <div class="ninebox-cell nb-${cell.id}" style="grid-row:${cell.row + 1};grid-column:${cell.col + 1};">
+          <div class="ninebox-cell-header">${cell.label}</div>
+          <div class="ninebox-cell-count">${cellEmps.length}</div>
+          <div class="ninebox-cell-names">${namesHtml}</div>
+          ${moreHtml}
+        </div>
+      `;
+    }
+  },
+
+  showTooltip(empId, event) {
+    const emp = AppState.employees.find(e => e.employeeId === empId);
+    if (!emp) return;
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = `
+      <div class="tt-name">${emp.name}</div>
+      <div class="tt-row"><span class="tt-label">部门:</span><span>${emp.department}</span></div>
+      <div class="tt-row"><span class="tt-label">区域:</span><span>${emp.region}</span></div>
+      <div class="tt-row"><span class="tt-label">岗位:</span><span>${emp.position}</span></div>
+      <div class="tt-row"><span class="tt-label">绩效:</span><span>${emp.performance}</span></div>
+      <div class="tt-row"><span class="tt-label">潜力:</span><span>${emp.potential}</span></div>
+      <div class="tt-row"><span class="tt-label">梯队:</span><span>${emp.talentTier}</span></div>
+      <div class="tt-row"><span class="tt-label">离职风险:</span><span>${emp.turnoverRisk}</span></div>
+    `;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (event.clientX + 12) + 'px';
+    tooltip.style.top = (event.clientY + 12) + 'px';
+  },
+
+  hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+  }
+};
+
+// ============================================================
+// DEPARTMENT MODULE
+// ============================================================
+const DeptModule = {
+  selectedDept: null,
+
+  render() {
+    if (AppState.employees.length === 0) {
+      document.getElementById('dept-layout').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+      return;
+    }
+    const depts = DataModule.getDepartmentList();
+    if (!DeptModule.selectedDept) DeptModule.selectedDept = depts[0];
+
+    const layout = document.getElementById('dept-layout');
+    layout.innerHTML = `
+      <div class="dept-list-panel" id="dept-list-panel"></div>
+      <div class="dept-detail-panel" id="dept-detail-panel"></div>
+    `;
+    DeptModule.renderDeptList(depts);
+    DeptModule.renderDeptDetail(DeptModule.selectedDept);
+  },
+
+  renderDeptList(depts) {
+    const panel = document.getElementById('dept-list-panel');
+    panel.innerHTML = '<h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">选择部门</h3>';
+    depts.forEach(dept => {
+      const count = AppState.employees.filter(e => e.department === dept).length;
+      const isActive = dept === DeptModule.selectedDept;
+      panel.innerHTML += `
+        <div class="dept-list-item ${isActive ? 'active' : ''}" onclick="DeptModule.selectDept('${dept}')">
+          <i class="fas fa-building" style="font-size:13px;"></i>
+          <span>${dept}</span>
+          <span class="dept-count">${count}人</span>
+        </div>
+      `;
+    });
+  },
+
+  selectDept(dept) {
+    DeptModule.selectedDept = dept;
+    DeptModule.render();
+  },
+
+  renderDeptDetail(dept) {
+    const panel = document.getElementById('dept-detail-panel');
+    const stats = DataModule.getDepartmentStats(dept);
+    const emps = AppState.employees.filter(e => e.department === dept);
+    const tiers = {
+      '高绩效': emps.filter(e => e.talentTier === '高绩效'),
+      '中绩效': emps.filter(e => e.talentTier === '中绩效'),
+      '低绩效': emps.filter(e => e.talentTier === '低绩效'),
+    };
+    const other = emps.filter(e => !['高绩效','中绩效','低绩效'].includes(e.talentTier));
+
+    panel.innerHTML = `
+      <div class="dept-kpi-row">
+        <div class="dept-kpi-mini"><div class="dk-val">${stats.total}</div><div class="dk-lbl">总人数</div></div>
+        <div class="dept-kpi-mini"><div class="dk-val">${stats.keyCount}/${stats.coveredCount}</div><div class="dk-lbl">关键岗位/已继任</div></div>
+        <div class="dept-kpi-mini"><div class="dk-val">${stats.highPotRatio}%</div><div class="dk-lbl">高潜占比</div></div>
+        <div class="dept-kpi-mini"><div class="dk-val" style="color:${stats.avgRisk > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.avgRisk}</div><div class="dk-lbl">高风险人数</div></div>
+      </div>
+      <div class="chart-card">
+        <h3>${dept} - 人才金字塔</h3>
+        <div class="pyramid-container">
+          <div class="pyramid">
+            <div class="pyramid-layer top">
+              <div class="pyramid-layer-label">高绩效 (${tiers['高绩效'].length}人)</div>
+              <div class="pyramid-layer-members">
+                ${tiers['高绩效'].map(e => `<span class="pyramid-member ${e.isKeyPosition ? 'key' : ''}" onclick="ProfileModule.showFullProfile('${e.employeeId}')">${e.isKeyPosition ? '<i class="fas fa-key"></i> ' : ''}${e.name}</span>`).join('')}
+              </div>
+            </div>
+            <div class="pyramid-layer mid">
+              <div class="pyramid-layer-label">中绩效 (${tiers['中绩效'].length}人)</div>
+              <div class="pyramid-layer-members">
+                ${tiers['中绩效'].map(e => `<span class="pyramid-member ${e.isKeyPosition ? 'key' : ''}" onclick="ProfileModule.showFullProfile('${e.employeeId}')">${e.isKeyPosition ? '<i class="fas fa-key"></i> ' : ''}${e.name}</span>`).join('')}
+              </div>
+            </div>
+            <div class="pyramid-layer bottom">
+              <div class="pyramid-layer-label">低绩效 & 一般员工 (${tiers['低绩效'].length + other.length}人)</div>
+              <div class="pyramid-layer-members">
+                ${tiers['低绩效'].concat(other).map(e => `<span class="pyramid-member ${e.isKeyPosition ? 'key' : ''}" onclick="ProfileModule.showFullProfile('${e.employeeId}')">${e.isKeyPosition ? '<i class="fas fa-key"></i> ' : ''}${e.name}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>区域分布</h3>
+        <div id="dept-region-dist"></div>
+      </div>
+      <div class="chart-card">
+        <h3>继任覆盖状态</h3>
+        <div id="dept-succession-status"></div>
+      </div>
+    `;
+    DeptModule.renderSuccessionStatus(dept);
+    DeptModule.renderRegionDist(dept);
+  },
+
+  renderRegionDist(dept) {
+    const container = document.getElementById('dept-region-dist');
+    if (!container) return;
+    const emps = AppState.employees.filter(e => e.department === dept);
+    const regions = [...new Set(emps.map(e => e.region))].sort();
+    if (regions.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;">暂无区域数据</div>';
+      return;
+    }
+    const maxCount = Math.max(...regions.map(r => emps.filter(e => e.region === r).length), 1);
+    container.innerHTML = regions.map(r => {
+      const cnt = emps.filter(e => e.region === r).length;
+      const pct = Math.round(cnt / emps.length * 100);
+      const barWidth = Math.round(cnt / maxCount * 100);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:90px;font-size:12px;font-weight:500;">${r}</span>
+        <div style="flex:1;height:18px;background:#f0f0f0;border-radius:4px;overflow:hidden;">
+          <div style="width:${barWidth}%;height:100%;background:linear-gradient(90deg,#4A90D9,#357ABD);border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;color:white;font-weight:600;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:600;width:40px;text-align:right;">${cnt}人</span>
+        <span style="font-size:11px;color:var(--text-secondary);width:35px;text-align:right;">${pct}%</span>
+      </div>`;
+    }).join('');
+  },
+
+
+  renderSuccessionStatus(dept) {
+    const keyPositions = AppState.employees.filter(e => e.department === dept && e.isKeyPosition);
+    const container = document.getElementById('dept-succession-status');
+    if (keyPositions.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;">该部门暂无关键岗位</p>';
+      return;
+    }
+    let html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+    keyPositions.forEach(emp => {
+      const readiness = DataModule.getSuccessorReadiness(emp);
+      const badge = emp.hasSuccessor
+        ? (readiness === 'ready' ? '<span class="status-badge green">立即可继任</span>'
+          : readiness === 'one-year' ? '<span class="status-badge yellow">1-2年内就绪</span>'
+          : readiness === 'two-year' ? '<span class="status-badge yellow">3-5年内就绪</span>'
+          : readiness === 'long-term' ? '<span class="status-badge yellow">需长期发展</span>'
+          : '<span class="status-badge red">培养中</span>')
+        : '<span class="status-badge red">无继任者</span>';
+      html += `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px;background:#f8f9fa;border-radius:6px;">
+          <i class="fas fa-user-tie" style="color:var(--accent-warm);"></i>
+          <strong style="font-size:14px;">${emp.position}</strong>
+          <span style="font-size:13px;color:var(--text-secondary);">- ${emp.name}</span>
+          ${badge}
+          ${emp.hasSuccessor ? `<span style="font-size:12px;color:var(--text-secondary);">继任: ${emp.successorName}</span>` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+};
+
+// ============================================================
+// SUCCESSION MODULE
+// ============================================================
+const SuccessionModule = {
+  render() {
+    if (AppState.employees.length === 0) {
+      document.getElementById('succession-content').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+      document.getElementById('succession-filters').innerHTML = '';
+      return;
+    }
+    SuccessionModule.renderFilters();
+    SuccessionModule.renderContent();
+  },
+
+  renderFilters() {
+    const depts = DataModule.getDepartmentList();
+    const regions = DataModule.getRegionList();
+    const container = document.getElementById('succession-filters');
+    container.innerHTML = `
+      <select onchange="SuccessionModule.filterDept(this.value)">
+        <option value="all">全部部门</option>
+        ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
+      </select>
+      <select onchange="SuccessionModule.filterRegion(this.value)">
+        <option value="all">全部区域</option>
+        ${regions.map(r => `<option value="${r}">${r}</option>`).join('')}
+      </select>
+      <select onchange="SuccessionModule.filterReadiness(this.value)">
+        <option value="all">全部就绪度</option>
+        <option value="ready">立即可继任</option>
+        <option value="one-year">1-2年内</option>
+        <option value="two-year">3-5年内</option>
+        <option value="long-term">需长期发展</option>
+        <option value="none">无继任者</option>
+      </select>
+      <select onchange="SuccessionModule.filterRisk(this.value)">
+        <option value="all">全部离职风险</option>
+        <option value="高">高风险</option>
+        <option value="中">中风险</option>
+        <option value="低">低风险</option>
+      </select>
+    `;
+  },
+
+  _deptFilter: 'all',
+  _regionFilter: 'all',
+  _readinessFilter: 'all',
+  _riskFilter: 'all',
+
+  filterDept(v) { SuccessionModule._deptFilter = v; SuccessionModule.renderContent(); },
+  filterRegion(v) { SuccessionModule._regionFilter = v; SuccessionModule.renderContent(); },
+  filterReadiness(v) { SuccessionModule._readinessFilter = v; SuccessionModule.renderContent(); },
+  filterRisk(v) { SuccessionModule._riskFilter = v; SuccessionModule.renderContent(); },
+
+  renderContent() {
+    const keyPositions = DataModule.getKeyPositions();
+    let filtered = keyPositions;
+    if (SuccessionModule._deptFilter !== 'all') filtered = filtered.filter(e => e.department === SuccessionModule._deptFilter);
+    if (SuccessionModule._regionFilter !== 'all') filtered = filtered.filter(e => e.region === SuccessionModule._regionFilter);
+    if (SuccessionModule._riskFilter !== 'all') filtered = filtered.filter(e => e.turnoverRisk === SuccessionModule._riskFilter);
+    if (SuccessionModule._readinessFilter !== 'all') {
+      filtered = filtered.filter(e => DataModule.getSuccessorReadiness(e) === SuccessionModule._readinessFilter);
+    }
+
+    const container = document.getElementById('succession-content');
+    container.innerHTML = `
+      <div class="chart-card">
+        <h3>关键岗位清单 (${filtered.length}个)</h3>
+        <table class="positions-table">
+          <thead>
+            <tr><th>岗位</th><th>部门</th><th>区域</th><th>现任者</th><th>继任者</th><th>就绪度</th><th>离职风险</th><th>状态</th></tr>
+          </thead>
+          <tbody id="positions-table-body"></tbody>
+        </table>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h3>继任就绪度分布</h3><canvas id="chart-readiness"></canvas></div>
+        <div class="chart-card"><h3>部门继任覆盖率</h3><canvas id="chart-coverage"></canvas></div>
+      </div>
+    `;
+    SuccessionModule.renderPositionTable(filtered);
+    SuccessionModule.renderReadinessChart();
+    SuccessionModule.renderCoverageChart();
+  },
+
+  renderPositionTable(positions) {
+    const tbody = document.getElementById('positions-table-body');
+    tbody.innerHTML = '';
+    positions.forEach(emp => {
+      const readiness = DataModule.getSuccessorReadiness(emp);
+      const dotClass = readiness === 'ready' ? 'ready' : readiness === 'one-year' ? 'one-year' : readiness === 'two-year' ? 'two-year' : readiness === 'long-term' ? 'long-term' : 'none';
+      const dotLabel = readiness === 'ready' ? '立即可继任' : readiness === 'one-year' ? '1-2年内' : readiness === 'two-year' ? '3-5年内' : readiness === 'long-term' ? '需长期发展' : '无继任者';
+      const badgeClass = emp.hasSuccessor ? (readiness === 'ready' ? 'green' : 'yellow') : 'red';
+      const badgeLabel = emp.hasSuccessor ? '已覆盖' : '未覆盖';
+      const riskClass = emp.turnoverRisk === '高' ? 'red' : emp.turnoverRisk === '中' ? 'yellow' : 'green';
+
+      tbody.innerHTML += `
+        <tr onclick="SuccessionModule.toggleDetail('${emp.employeeId}')">
+          <td><strong>${emp.position}</strong></td>
+          <td>${emp.department}</td>
+          <td>${emp.region}</td>
+          <td>${emp.name}</td>
+          <td>${emp.successorName || '<span style="color:var(--danger)">-</span>'}</td>
+          <td><div class="readiness-indicator"><span class="readiness-dot ${dotClass}">${readiness === 'none' ? '!' : ''}</span> ${dotLabel}</div></td>
+          <td><span class="status-badge ${riskClass}">${emp.turnoverRisk}</span></td>
+          <td><span class="status-badge ${badgeClass}">${badgeLabel}</span></td>
+        </tr>
+        <tr><td colspan="7" class="candidate-detail" id="detail-${emp.employeeId}">
+          ${SuccessionModule.renderCandidateDetail(emp)}
+        </td></tr>
+      `;
+    });
+  },
+
+  renderCandidateDetail(emp) {
+    if (!emp.hasSuccessor || !emp.successorName) {
+      return '<div style="padding:8px;color:var(--danger);font-size:13px;"><i class="fas fa-exclamation-triangle"></i> 该关键岗位暂无继任者，请尽快培养候选人</div>';
+    }
+    // Try to find successor by name first (legacy); otherwise use readiness info from data
+    const successor = AppState.employees.find(e => e.name === emp.successorName);
+    const readiness = DataModule.getSuccessorReadiness(emp);
+    const readinessLabel = readiness === 'ready' ? '立即可继任' : readiness === 'one-year' ? '1-2年内' : readiness === 'two-year' ? '3-5年内' : readiness === 'long-term' ? '需长期发展' : '需加速培养';
+    const readinessColor = readiness === 'ready' ? 'var(--success)' : readiness === 'one-year' ? '#8bc34a' : readiness === 'two-year' ? 'var(--warning)' : readiness === 'long-term' ? '#ff9800' : 'var(--danger)';
+
+    if (successor) {
+      return `
+        <div style="display:flex;gap:16px;padding:8px;">
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px;">继任者: ${successor.name}</div>
+            <div style="font-size:13px;line-height:1.8;">
+              <div>当前岗位: ${successor.position} (${successor.department})</div>
+              <div>九宫格位置: ${successor.nineBoxPosition}号格</div>
+              <div>绩效: ${successor.performance} | 潜力: ${successor.potential}</div>
+              <div>关键经验: ${successor.keyExperience ? successor.keyExperience.split(',').map(e => `<span class="experience-tag">${e}</span>`).join('') : '暂无'}</div>
+              <div>培训需求: ${successor.trainingNeeds ? successor.trainingNeeds.split(',').map(t => `<span class="training-tag">${t}</span>`).join('') : '暂无'}</div>
+            </div>
+          </div>
+          <div style="flex:0 0 180px;text-align:center;">
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">就绪度评估</div>
+            <div style="font-size:20px;font-weight:700;color:${readinessColor};">${readinessLabel}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="display:flex;gap:16px;padding:8px;">
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px;">继任信息</div>
+          <div style="font-size:13px;line-height:1.8;">
+            <div>目标岗位: ${emp.successionTarget || emp.position}</div>
+            <div>关键经验: ${emp.keyExperience ? emp.keyExperience.split(',').map(e => `<span class="experience-tag">${e}</span>`).join('') : '暂无'}</div>
+            <div>培训需求: ${emp.trainingNeeds ? emp.trainingNeeds.split(',').map(t => `<span class="training-tag">${t}</span>`).join('') : '暂无'}</div>
+            <div>潜力评分: ${emp.potentialScore || '-'}</div>
+            <div>人才类型: ${emp.talentType || '-'}</div>
+          </div>
+        </div>
+        <div style="flex:0 0 180px;text-align:center;">
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">就绪度评估</div>
+          <div style="font-size:20px;font-weight:700;color:${readinessColor};">${readinessLabel}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  toggleDetail(empId) {
+    const detail = document.getElementById('detail-' + empId);
+    if (detail) detail.classList.toggle('show');
+  },
+
+  renderReadinessChart() {
+    OverviewModule.destroyChart('readiness');
+    const keyPositions = DataModule.getKeyPositions();
+    const categories = ['ready', 'one-year', 'two-year', 'long-term', 'none'];
+    const labels = ['立即可继任', '1-2年内', '3-5年内', '需长期发展', '无继任者'];
+    const colors = ['#4caf50', '#8bc34a', '#ffc107', '#ff9800', '#f44336'];
+    const counts = categories.map(c => keyPositions.filter(e => DataModule.getSuccessorReadiness(e) === c).length);
+    const ctx = document.getElementById('chart-readiness').getContext('2d');
+    AppState.charts['readiness'] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: '岗位数', data: counts, backgroundColor: colors }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+  },
+
+  renderCoverageChart() {
+    OverviewModule.destroyChart('coverage');
+    const depts = DataModule.getDepartmentList();
+    const keyByDept = depts.map(d => {
+      const kp = AppState.employees.filter(e => e.department === d && e.isKeyPosition);
+      const covered = kp.filter(e => e.hasSuccessor).length;
+      const uncovered = kp.length - covered;
+      return { dept: d, covered, uncovered, total: kp.length };
+    }).filter(d => d.total > 0);
+    const ctx = document.getElementById('chart-coverage').getContext('2d');
+    AppState.charts['coverage'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: keyByDept.map(d => d.dept),
+        datasets: [
+          { label: '已覆盖', data: keyByDept.map(d => d.covered), backgroundColor: '#4caf50' },
+          { label: '未覆盖', data: keyByDept.map(d => d.uncovered), backgroundColor: '#f44336' }
+        ]
+      },
+      options: {
+        indexAxis: 'y', responsive: true,
+        scales: { x: { stacked: true }, y: { stacked: true } },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+  }
+};
+
+// ============================================================
+// PROFILE MODULE
+// ============================================================
+const ProfileModule = {
+  render() {
+    if (AppState.employees.length === 0) {
+      document.getElementById('profile-search-bar').innerHTML = '';
+      document.getElementById('profile-grid').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+      return;
+    }
+    ProfileModule.renderSearchBar();
+    ProfileModule.renderCardGrid(AppState.employees);
+  },
+
+  renderSearchBar() {
+    const depts = DataModule.getDepartmentList();
+    const regions = DataModule.getRegionList();
+    const tiers = ['高绩效', '中绩效', '低绩效'];
+    const bar = document.getElementById('profile-search-bar');
+    bar.innerHTML = `
+      <input type="text" placeholder="搜索姓名、工号、部门、岗位..." oninput="ProfileModule.handleSearch(this.value)" id="profile-search-input">
+      <select onchange="ProfileModule.filterDept(this.value)" id="profile-dept-filter">
+        <option value="all">全部部门</option>
+        ${depts.map(d => `<option value="${d}">${d}</option>`).join('')}
+      </select>
+      <select onchange="ProfileModule.filterRegion(this.value)" id="profile-region-filter">
+        <option value="all">全部区域</option>
+        ${regions.map(r => `<option value="${r}">${r}</option>`).join('')}
+      </select>
+      <select onchange="ProfileModule.filterTier(this.value)" id="profile-tier-filter">
+        <option value="all">全部梯队</option>
+        ${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}
+      </select>
+    `;
+  },
+
+  handleSearch(query) {
+    AppState.filters.search = query;
+    ProfileModule.applyFilters();
+  },
+
+  filterDept(dept) {
+    AppState.filters.department = dept === 'all' ? 'all' : dept;
+    ProfileModule.applyFilters();
+  },
+
+  filterRegion(region) {
+    AppState.filters.region = region === 'all' ? 'all' : region;
+    ProfileModule.applyFilters();
+  },
+
+  filterTier(tier) {
+    AppState.filters.tier = tier === 'all' ? 'all' : tier;
+    ProfileModule.applyFilters();
+  },
+
+  applyFilters() {
+    const filtered = DataModule.getFilteredEmployees();
+    ProfileModule.renderCardGrid(filtered);
+  },
+
+  renderCardGrid(employees) {
+    const grid = document.getElementById('profile-grid');
+    if (employees.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>未找到匹配的员工</p></div>';
+      return;
+    }
+    grid.innerHTML = employees.map(emp => ProfileModule.renderCard(emp)).join('');
+  },
+
+  renderCard(emp) {
+    const riskClass = emp.turnoverRisk === '高' ? 'risk-high' : emp.turnoverRisk === '中' ? 'risk-mid' : 'risk-low';
+    const nbDesc = NineBoxModule.cells.find(c => c.id === emp.nineBoxPosition);
+    return `
+      <div class="profile-card" onclick="ProfileModule.showFullProfile('${emp.employeeId}')">
+        <div class="profile-card-header">
+          <div class="profile-avatar">${emp.name.charAt(0)}</div>
+          <div>
+            <div class="profile-card-name">${emp.name} ${emp.englishName ? '<small style="font-weight:400;font-size:11px;opacity:0.7">' + emp.englishName + '</small>' : ''}</div>
+            <div class="profile-card-id">${emp.employeeId} · ${emp.yearsOfService || 0}年</div>
+          </div>
+        </div>
+        <div class="profile-card-info">
+          <div class="info-row"><span class="info-label">部门</span><span>${emp.department}</span></div>
+          <div class="info-row"><span class="info-label">区域</span><span>${emp.region}</span></div>
+          <div class="info-row"><span class="info-label">岗位</span><span>${emp.position}</span></div>
+          <div class="info-row"><span class="info-label">绩效/潜力</span><span>${emp.performance} / ${emp.potential}</span></div>
+          <div class="info-row"><span class="info-label">入职年数</span><span>${emp.yearsOfService || 0}年</span></div>
+          <div class="info-row"><span class="info-label">学历</span><span>${emp.education || '-'}</span></div>
+          <div class="info-row"><span class="info-label">年龄</span><span>${emp.age || '-'}岁</span></div>
+        </div>
+        <hr class="profile-card-divider">
+        <div class="profile-card-tags">
+          <span class="profile-tag tier">${emp.talentTier}</span>
+          ${emp.isKeyPosition ? '<span class="profile-tag key">关键岗位</span>' : ''}
+          <span class="profile-tag ${riskClass}">风险:${emp.turnoverRisk}</span>
+        </div>
+        <div class="profile-card-footer">查看完整档案 &rarr;</div>
+      </div>
+    `;
+  },
+
+  showFullProfile(empId) {
+    const emp = AppState.employees.find(e => e.employeeId === empId);
+    if (!emp) return;
+    const modal = document.getElementById('profile-modal');
+    const content = document.getElementById('profile-modal-content');
+
+    const nbDesc = NineBoxModule.cells.find(c => c.id === emp.nineBoxPosition);
+    const miniNineboxHtml = ProfileModule.renderMiniNineBox(emp.nineBoxPosition);
+
+    content.innerHTML = `
+      <button class="modal-close" onclick="ProfileModule.closeModal()">&times;</button>
+      <div class="full-profile-header">
+        <div class="full-profile-avatar">${emp.name.charAt(0)}</div>
+        <div class="full-profile-title">
+          <h3>${emp.name}</h3>
+          <p>${emp.employeeId} | ${emp.department} | ${emp.region} | ${emp.position}</p>
+        </div>
+      </div>
+      <div class="full-profile-section">
+        <h4>基础信息</h4>
+        <div class="full-profile-info-grid">
+          <div class="fpi-row"><span class="fpi-label">英文名</span><span class="fpi-value">${emp.englishName || '-'}</span></div>
+          <div class="fpi-row"><span class="fpi-label">部门</span><span class="fpi-value">${emp.department}</span></div>
+          <div class="fpi-row"><span class="fpi-label">区域</span><span class="fpi-value">${emp.region}</span></div>
+          <div class="fpi-row"><span class="fpi-label">职级</span><span class="fpi-value">${emp.grade}</span></div>
+          <div class="fpi-row"><span class="fpi-label">入职日期</span><span class="fpi-value">${emp.joinDate}</span></div>
+          <div class="fpi-row"><span class="fpi-label">入职年数</span><span class="fpi-value">${emp.yearsOfService || 0}年</span></div>
+          <div class="fpi-row"><span class="fpi-label">上年度绩效</span><span class="fpi-value">${emp.performance}</span></div>
+          <div class="fpi-row"><span class="fpi-label">潜力评级</span><span class="fpi-value">${emp.potential}</span></div>
+          <div class="fpi-row"><span class="fpi-label">人才梯队</span><span class="fpi-value">${emp.talentTier}</span></div>
+          <div class="fpi-row"><span class="fpi-label">离职风险</span><span class="fpi-value">${emp.turnoverRisk}</span></div>
+          <div class="fpi-row"><span class="fpi-label">学历</span><span class="fpi-value">${emp.education || '-'}</span></div>
+          <div class="fpi-row"><span class="fpi-label">年龄</span><span class="fpi-value">${emp.age ? emp.age + '岁' : '-'}</span></div>
+          <div class="fpi-row"><span class="fpi-label">关键岗位</span><span class="fpi-value">${emp.isKeyPosition ? '是' : '否'}</span></div>
+          <div class="fpi-row"><span class="fpi-label">继任者</span><span class="fpi-value">${emp.successorName || '无'}</span></div>
+        </div>
+      </div>
+      <div class="full-profile-section">
+        <h4>九宫格定位</h4>
+        <div style="text-align:center;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">
+          当前位于 ${emp.nineBoxPosition}号格 (${nbDesc ? nbDesc.label : ''})
+        </div>
+        ${miniNineboxHtml}
+      </div>
+      <div class="full-profile-section">
+        <h4>关键经验</h4>
+        <div>${emp.keyExperience ? emp.keyExperience.split(',').map(e => `<span class="experience-tag">${e}</span>`).join('') : '<span style="color:var(--text-secondary)">暂无记录</span>'}</div>
+      </div>
+      <div class="full-profile-section">
+        <h4>培训需求</h4>
+        <div>${emp.trainingNeeds ? emp.trainingNeeds.split(',').map(t => `<span class="training-tag">${t}</span>`).join('') : '<span style="color:var(--text-secondary)">暂无记录</span>'}</div>
+      </div>
+    `;
+    modal.classList.add('show');
+  },
+
+  renderMiniNineBox(highlightPos) {
+    let html = '<div class="mini-ninebox">';
+    for (const cell of NineBoxModule.cells) {
+      const highlighted = cell.id === highlightPos ? 'highlighted' : '';
+      html += `<div class="mini-nb-cell nb-${cell.id} ${highlighted}">${cell.id}</div>`;
+    }
+    html += '</div>';
+    return html;
+  },
+
+  closeModal() {
+    document.getElementById('profile-modal').classList.remove('show');
+  }
+};
+
+// Close modal on overlay click
+document.getElementById('profile-modal').addEventListener('click', function(e) {
+  if (e.target === this) ProfileModule.closeModal();
+});
+
+// ============================================================
+// IMPORT MODULE
+// ============================================================
+const ImportModule = {
+  showModal() {
+    document.getElementById('import-modal').classList.add('show');
+    document.getElementById('import-preview').style.display = 'none';
+    document.getElementById('import-confirm-btn').style.display = 'none';
+    document.getElementById('import-error').style.display = 'none';
+    document.getElementById('import-file').value = '';
+  },
+
+  hideModal() {
+    document.getElementById('import-modal').classList.remove('show');
+    AppState.pendingImportData = null;
+  },
+
+  handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    DataModule.importExcel(file);
+  },
+
+  showPreview(data) {
+    const preview = document.getElementById('import-preview');
+    const maxRows = 10;
+    const headers = Object.keys(DataModule.fieldMap);
+    let html = '<table><thead><tr>';
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += '</tr></thead><tbody>';
+    data.slice(0, maxRows).forEach(row => {
+      html += '<tr>';
+      headers.forEach(h => {
+        const engKey = DataModule.fieldMap[h];
+        const val = row[engKey] || '';
+        html += `<td>${String(val).substring(0, 20)}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    if (data.length > maxRows) html += `<div style="padding:8px;font-size:12px;color:var(--text-secondary);">共${data.length}条数据，仅显示前${maxRows}条</div>`;
+    preview.innerHTML = html;
+    preview.style.display = 'block';
+    document.getElementById('import-confirm-btn').style.display = 'inline-block';
+  },
+
+  confirmImport() {
+    if (!AppState.pendingImportData) return;
+    AppState.employees = AppState.pendingImportData;
+    AppState.pendingImportData = null;
+    ImportModule.hideModal();
+    // Re-render all pages
+    NavModule.switchPage(AppState.currentPage);
+  },
+
+  showError(msg) {
+    const err = document.getElementById('import-error');
+    err.textContent = msg;
+    err.style.display = 'block';
+  }
+};
+
+// Close import modal on overlay click
+document.getElementById('import-modal').addEventListener('click', function(e) {
+  if (e.target === this) ImportModule.hideModal();
+});
+
+// ============================================================
+// I18N MODULE — Internationalization (Chinese / English)
+// ============================================================
+const I18N = {
+  zh: {
+    logo_title: 'Nabati',
+    logo_subtitle: '人才梯队',
+    nav_overview: '总览',
+    nav_ninebox: '人才九宫格',
+    nav_department: '部门架构',
+    nav_succession: '关键岗位与继任',
+    nav_profiles: '个人档案',
+    btn_import: '导入 Excel 数据',
+    btn_template: '下载导入模板',
+    btn_cancel: '取消',
+    btn_confirm: '确认导入',
+    import_drop: '点击此处或拖拽 Excel 文件到此处',
+    import_format: '支持 .xlsx / .xls / .csv 格式',
+    chart_dept_dist: '各部门人才梯队分布',
+    chart_region_dist: '各区域人才分布',
+    chart_tier_dist: '人才梯队分布',
+    chart_risk_dist: '离职风险分布',
+    filter_all_dept: '全部部门',
+    filter_all_region: '全部区域',
+    nb_axis_hint: '纵轴=潜力(高→低)，横轴=绩效(低→高)',
+    kpi_total: '总人数',
+    kpi_key_positions: '关键岗位数',
+    kpi_coverage: '继任覆盖率',
+    kpi_high_pot: '高潜占比',
+    tier_top: '高绩效',
+    tier_mid: '中绩效',
+    tier_bottom: '低绩效',
+    tier_other: '一般员工',
+    empty_data: '暂无数据',
+    empty_data_hint: '请导入Excel数据或使用示例数据',
+    empty_no_results: '未找到匹配的员工',
+    empty_no_region: '暂无区域数据',
+    dept_select: '选择部门',
+    dept_people_suffix: '人',
+    dept_pyramid_title: '人才金字塔',
+    dept_region_title: '区域分布',
+    dept_succession_title: '继任覆盖状态',
+    dept_total: '总人数',
+    dept_key_covered: '关键岗位/已继任',
+    dept_high_pot_pct: '高潜占比',
+    dept_risk_count: '高风险人数',
+    dept_pyramid_bottom_label: '低绩效 & 一般员工',
+    succession_list_title: '关键岗位清单',
+    succession_readiness_title: '继任就绪度分布',
+    succession_coverage_title: '部门继任覆盖率',
+    th_position: '岗位',
+    th_department: '部门',
+    th_region: '区域',
+    th_holder: '现任者',
+    th_successor: '继任者',
+    th_readiness: '就绪度',
+    th_risk: '离职风险',
+    th_status: '状态',
+    readiness_ready: '立即可继任',
+    readiness_1yr: '1-2年内',
+    readiness_2yr: '3-5年内',
+    readiness_long: '需长期发展',
+    readiness_none: '无继任者',
+    readiness_accelerate: '需加速培养',
+    status_covered: '已覆盖',
+    status_uncovered: '未覆盖',
+    no_successor_warning: '该关键岗位暂无继任者，请尽快培养候选人',
+    successor_info: '继任者',
+    curr_position: '当前岗位',
+    nb_position: '九宫格位置',
+    perf_potential: '绩效 | 潜力',
+    key_exp: '关键经验',
+    training_need: '培训需求',
+    profile_search_ph: '搜索姓名、工号、部门、岗位...',
+    filter_all_tier: '全部梯队',
+    filter_all_readiness: '全部就绪度',
+    filter_all_risk: '全部离职风险',
+    risk_high: '高风险',
+    risk_mid: '中风险',
+    risk_low: '低风险',
+    label_dept: '部门',
+    label_region: '区域',
+    label_position: '岗位',
+    label_perf_pot: '绩效/潜力',
+    label_key_pos: '关键岗位',
+    label_risk_tag: '风险:',
+    label_education: '学历',
+    label_age: '年龄',
+    label_english_name: '英文名',
+    label_years_of_service: '入职年数',
+    chart_edu_dist: '学历分布',
+    label_view_full: '查看完整档案 →',
+    modal_basic_info: '基础信息',
+    modal_grade: '职级',
+    modal_join_date: '入职日期',
+    modal_perf: '上年度绩效',
+    modal_potential: '潜力评级',
+    modal_tier: '人才梯队',
+    modal_risk: '离职风险',
+    modal_key_pos: '关键岗位',
+    modal_yes: '是',
+    modal_no: '否',
+    modal_successor: '继任者',
+    modal_none: '无',
+    modal_nb_loc: '九宫格定位',
+    modal_nb_hint: '当前位于',
+    modal_nb_cell: '号格',
+    modal_key_exp: '关键经验',
+    modal_training: '培训需求',
+    modal_no_record: '暂无记录',
+    tooltip_turnover: '离职风险:',
+    people_count: '{n}人',
+  },
+  en: {
+    logo_title: 'Nabati',
+    logo_subtitle: 'Talent Pipeline',
+    nav_overview: 'Overview',
+    nav_ninebox: 'Talent Nine-Box',
+    nav_department: 'Department Architecture',
+    nav_succession: 'Key Positions & Succession',
+    nav_profiles: 'Individual Profiles',
+    btn_import: 'Import Excel Data',
+    btn_template: 'Download Template',
+    btn_cancel: 'Cancel',
+    btn_confirm: 'Confirm Import',
+    import_drop: 'Click or drag Excel file here',
+    import_format: 'Supports .xlsx / .xls / .csv',
+    chart_dept_dist: 'Talent Distribution by Dept',
+    chart_region_dist: 'Talent Distribution by Region',
+    chart_tier_dist: 'Talent Tier Distribution',
+    chart_risk_dist: 'Turnover Risk Distribution',
+    filter_all_dept: 'All Departments',
+    filter_all_region: 'All Regions',
+    nb_axis_hint: 'Y-axis=Potential(High→Low), X-axis=Performance(Low→High)',
+    kpi_total: 'Total Headcount',
+    kpi_key_positions: 'Key Positions',
+    kpi_coverage: 'Succession Coverage',
+    kpi_high_pot: 'High-Pot Ratio',
+    tier_top: 'High Performers',
+    tier_mid: 'Mid Performers',
+    tier_bottom: 'Low Performers',
+    tier_other: 'General Staff',
+    empty_data: 'No Data',
+    empty_data_hint: 'Please import Excel data or use sample data',
+    empty_no_results: 'No matching employees found',
+    empty_no_region: 'No region data available',
+    dept_select: 'Select Department',
+    dept_people_suffix: '',
+    dept_pyramid_title: 'Talent Pyramid',
+    dept_region_title: 'Region Distribution',
+    dept_succession_title: 'Succession Coverage Status',
+    dept_total: 'Total Count',
+    dept_key_covered: 'Key Pos / Covered',
+    dept_high_pot_pct: 'High-Pot %',
+    dept_risk_count: 'High-Risk Count',
+    dept_pyramid_bottom_label: 'Hi-Pot Newcomers & General Staff',
+    succession_list_title: 'Key Position List',
+    succession_readiness_title: 'Readiness Distribution',
+    succession_coverage_title: 'Dept Coverage Rate',
+    th_position: 'Position',
+    th_department: 'Department',
+    th_region: 'Region',
+    th_holder: 'Current Holder',
+    th_successor: 'Successor',
+    th_readiness: 'Readiness',
+    th_risk: 'Turnover Risk',
+    th_status: 'Status',
+    readiness_ready: 'Ready Now',
+    readiness_1yr: '1-2 Years',
+    readiness_2yr: '3-5 Years',
+    readiness_long: 'Long-term Dev',
+    readiness_none: 'No Successor',
+    readiness_accelerate: 'Accelerate Dev',
+    status_covered: 'Covered',
+    status_uncovered: 'Uncovered',
+    no_successor_warning: 'This key position has no successor yet. Please develop candidates ASAP.',
+    successor_info: 'Successor',
+    curr_position: 'Current Position',
+    nb_position: 'Nine-Box Position',
+    perf_potential: 'Perf | Potential',
+    key_exp: 'Key Experience',
+    training_need: 'Training Needs',
+    profile_search_ph: 'Search name, ID, dept, position...',
+    filter_all_tier: 'All Tiers',
+    filter_all_readiness: 'All Readiness',
+    filter_all_risk: 'All Risks',
+    risk_high: 'High Risk',
+    risk_mid: 'Mid Risk',
+    risk_low: 'Low Risk',
+    label_dept: 'Dept',
+    label_region: 'Region',
+    label_position: 'Position',
+    label_perf_pot: 'Perf/Pot',
+    label_key_pos: 'Key Position',
+    label_risk_tag: 'Risk:',
+    label_education: 'Education',
+    label_age: 'Age',
+    label_english_name: 'English Name',
+    label_years_of_service: 'Years of Service',
+    chart_edu_dist: 'Education Distribution',
+    label_view_full: 'View Full Profile →',
+    modal_basic_info: 'Basic Info',
+    modal_grade: 'Grade',
+    modal_join_date: 'Join Date',
+    modal_perf: 'Annual Perf.',
+    modal_potential: 'Potential Rating',
+    modal_tier: 'Talent Tier',
+    modal_risk: 'Turnover Risk',
+    modal_key_pos: 'Key Position',
+    modal_yes: 'Yes',
+    modal_no: 'No',
+    modal_successor: 'Successor',
+    modal_none: 'None',
+    modal_nb_loc: 'Nine-Box Location',
+    modal_nb_hint: 'Currently in cell',
+    modal_nb_cell: '',
+    modal_key_exp: 'Key Experience',
+    modal_training: 'Training Needs',
+    modal_no_record: 'No Record',
+    tooltip_turnover: 'Turnover Risk:',
+    people_count: '{n} people',
+  }
+};
+
+const I18nModule = {
+  lang: localStorage.getItem('nb_dashboard_lang') || 'zh',
+
+  t(key, vars) {
+    const str = I18N[this.lang][key] || I18N.zh[key] || key;
+    if (!vars) return str;
+    return str.replace(/{(\w+)}/g, (_, k) => vars[k] !== undefined ? vars[k] : _);
+  },
+
+  switch(newLang) {
+    this.lang = newLang;
+    localStorage.setItem('nb_dashboard_lang', newLang);
+    document.getElementById('lang-zh').classList.toggle('active', newLang === 'zh');
+    document.getElementById('lang-en').classList.toggle('active', newLang === 'en');
+    document.documentElement.lang = newLang === 'zh' ? 'zh-CN' : 'en';
+    // Update all static elements with data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (I18N[newLang][key]) el.textContent = I18N[newLang][key];
+    });
+    // Re-render current page to update dynamic content
+    NavModule.switchPage(AppState.currentPage);
+  },
+
+  applyStatic() {
+    const lang = this.lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (I18N[lang][key]) el.textContent = I18N[lang][key];
+    });
+    document.getElementById('lang-zh').classList.toggle('active', lang === 'zh');
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  }
+};
+
+// Global shorthand
+function t(key, vars) { return I18nModule.t(key, vars); }
+
+// ============================================================
+// UTILS MODULE
+// ============================================================
+const Utils = {
+  formatPercent(value) { return Math.round(value * 100) + '%'; },
+  formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try { return new Date(dateStr).toLocaleDateString('zh-CN'); } catch(e) { return dateStr; }
+  },
+  debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+};
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+(function init() {
+  DataModule.init();
+  NavModule.init();
+  OverviewModule.render();
+})();
+</script>
+</body>
+</html>
