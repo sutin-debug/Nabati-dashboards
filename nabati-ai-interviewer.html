@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纳宝帝AI 智能面试官 — HR招聘全流程智能辅助系统</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ========== Reset & Base ========== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#4F46E5;--primary-hover:#4338CA;--primary-light:#EEF2FF;
+  --success:#10B981;--warning:#F59E0B;--error:#EF4444;
+  --bg:#F1F5F9;--card:#FFFFFF;--text:#1E293B;--text-sec:#64748B;--text-light:#94A3B8;
+  --border:#E2E8F0;--sidebar-grad:linear-gradient(180deg,#4F46E5 0%,#7C3AED 100%);
+  --radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+  --transition:all .2s ease;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:var(--text);background:var(--bg);line-height:1.6}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,textarea,select{font-family:inherit;outline:none}
+a{color:var(--primary);text-decoration:none}
+
+/* ========== Layout ========== */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:260px;background:var(--sidebar-grad);color:#fff;display:flex;flex-direction:column;flex-shrink:0;z-index:10}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ========== Sidebar ========== */
+.sidebar-header{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.15)}
+.sidebar-header h1{font-size:18px;font-weight:700;margin-bottom:4px}
+.sidebar-header p{font-size:12px;opacity:.8}
+.nav{flex:1;padding:16px 12px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);margin-bottom:4px;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.12)}
+.nav-item.active{background:rgba(255,255,255,.2);font-weight:600}
+.nav-item.locked{opacity:.45;cursor:not-allowed}
+.nav-item.completed .nav-num{background:var(--success);border-color:var(--success)}
+.nav-num{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;transition:var(--transition)}
+.nav-item.active .nav-num{border-color:#fff;background:rgba(255,255,255,.25)}
+.nav-text{flex:1;font-size:14px}
+.nav-text small{display:block;font-size:11px;opacity:.7;font-weight:400}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.15);font-size:12px;opacity:.7}
+
+/* ========== Header ========== */
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left h2{font-size:18px;font-weight:700}
+.header-actions{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;transition:var(--transition);white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--primary-light);color:var(--primary)}
+.btn-secondary:hover{background:#E0E7FF}
+.btn-ghost{background:transparent;color:var(--text-sec);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg);border-color:var(--text-light)}
+.btn-sm{padding:6px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-danger{background:#FEE2E2;color:var(--error)}
+.btn-danger:hover{background:#FECACA}
+
+/* ========== Content ========== */
+.content{flex:1;overflow-y:auto;padding:24px}
+.module{display:none;max-width:960px;margin:0 auto}
+.module.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ========== Cards ========== */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:16px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title .badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--primary-light);color:var(--primary)}
+
+/* ========== Forms ========== */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text-sec);margin-bottom:6px}
+.form-input,.form-textarea,.form-select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;transition:var(--transition);background:var(--card);color:var(--text)}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.form-textarea{resize:vertical;min-height:120px;line-height:1.6}
+
+/* ========== Upload Zone ========== */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;transition:var(--transition);cursor:pointer}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
+.upload-zone p{color:var(--text-sec);font-size:14px;margin-top:8px}
+.upload-icon{font-size:36px;color:var(--text-light)}
+.upload-zone .formats{font-size:12px;color:var(--text-light);margin-top:4px}
+
+/* ========== Tags ========== */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;background:var(--primary-light);color:var(--primary);margin:2px}
+.tag-success{background:#D1FAE5;color:#065F46}
+.tag-warning{background:#FEF3C7;color:#92400E}
+.tag-error{background:#FEE2E2;color:#991B1B}
+
+/* ========== Candidate List ========== */
+.candidate-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;transition:var(--transition)}
+.candidate-item:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+.candidate-avatar{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0}
+.candidate-info{flex:1}
+.candidate-info h4{font-size:14px;font-weight:600}
+.candidate-info p{font-size:12px;color:var(--text-sec)}
+.candidate-score{font-size:20px;font-weight:700;color:var(--primary)}
+.candidate-actions{display:flex;gap:4px}
+
+/* ========== Score Bars ========== */
+.score-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:4px}
+.score-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+
+/* ========== Table ========== */
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:10px 12px;background:var(--bg);font-weight:600;color:var(--text-sec);border-bottom:2px solid var(--border);white-space:nowrap}
+.table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.table tr:hover td{background:var(--primary-light)}
+
+/* ========== Radar Chart ========== */
+.chart-container{position:relative;width:100%;max-width:500px;margin:0 auto}
+
+/* ========== Modal ========== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;animation:fadeIn .2s ease}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:90%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:18px;font-weight:700}
+.modal-close{background:none;font-size:24px;color:var(--text-light);padding:4px;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* ========== Toast ========== */
+.toast-container{position:fixed;top:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);padding:12px 20px;display:flex;align-items:center;gap:8px;font-size:14px;animation:slideIn .3s ease;border-left:4px solid var(--primary);min-width:280px}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--error)}
+.toast.warning{border-left-color:var(--warning)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ========== Loading ========== */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:150;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:48px;height:48px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:15px;color:var(--text-sec);font-weight:500}
+.loading-progress{font-size:13px;color:var(--text-light)}
+
+/* ========== Empty State ========== */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-light)}
+.empty-state-icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+/* ========== Progress Steps ========== */
+.step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.step-dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:var(--transition)}
+.step-dot.active{background:var(--primary)}
+.step-dot.completed{background:var(--success)}
+.step-line{flex:1;height:2px;background:var(--border);transition:var(--transition)}
+.step-line.completed{background:var(--success)}
+
+/* ========== Analysis Result ========== */
+.analysis-section{margin-bottom:20px}
+.analysis-section h4{font-size:14px;font-weight:600;color:var(--text-sec);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.dimension-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.dimension-item:last-child{border-bottom:none}
+ dimension-name{flex:1;font-size:13px;font-weight:500}
+.dimension-weight{font-size:12px;color:var(--text-sec);background:var(--bg);padding:2px 8px;border-radius:12px}
+
+/* ========== Interview Questions ========== */
+.question-card{border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px}
+.question-card h5{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.question-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.question-meta span{font-size:11px;padding:2px 8px;border-radius:12px;background:var(--bg);color:var(--text-sec)}
+.difficulty-easy{background:#D1FAE5!important;color:#065F46!important}
+.difficulty-medium{background:#FEF3C7!important;color:#92400E!important}
+.difficulty-hard{background:#FEE2E2!important;color:#991B1B!important}
+
+/* ========== Decision Card ========== */
+.decision-card{border-left:4px solid var(--primary);padding:16px 20px;background:var(--primary-light);border-radius:var(--radius-sm);margin-bottom:12px}
+.decision-card.recommend{border-left-color:var(--success);background:#ECFDF5}
+.decision-card.pending{border-left-color:var(--warning);background:#FFFBEB}
+.decision-card.not-recommend{border-left-color:var(--error);background:#FEF2F2}
+.decision-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.decision-badge{font-size:16px;font-weight:700;padding:4px 12px;border-radius:20px}
+
+/* ========== Special Analysis Panels ========== */
+.special-panel{border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;border-left:4px solid}
+.special-panel.stability{background:#EFF6FF;border-left-color:#3B82F6}
+.special-panel.motivation{background:#F0FDF4;border-left-color:#10B981}
+.special-panel.redline{background:#FEF2F2;border-left-color:#EF4444}
+.special-panel.values{background:#FAF5FF;border-left-color:#8B5CF6}
+.special-panel h4{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.special-panel h4 .panel-icon{font-size:18px}
+.risk-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.risk-low{background:#D1FAE5;color:#065F46}
+.risk-medium{background:#FEF3C7;color:#92400E}
+.risk-high{background:#FEE2E2;color:#991B1B}
+.checklist-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.checklist-item:last-child{border-bottom:none}
+.checklist-box{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;margin-top:2px}
+.checklist-content{flex:1}
+.checklist-content .ci-title{font-size:13px;font-weight:600}
+.checklist-content .ci-method{font-size:12px;color:var(--text-sec);margin-top:2px}
+.value-dimension{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.value-dimension:last-child{border-bottom:none}
+.value-name{font-weight:600;font-size:13px;min-width:100px;color:var(--primary)}
+.value-assess{flex:1;font-size:13px;color:var(--text-sec)}
+.value-score{font-size:16px;font-weight:700}
+.category-icon{display:inline-block;width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;margin-right:4px}
+.cat-stability{background:#DBEAFE;color:#1E40AF}
+.cat-motivation{background:#D1FAE5;color:#065F46}
+.cat-redline{background:#FEE2E2;color:#991B1B}
+.cat-values{background:#EDE9FE;color:#5B21B6}
+.cat-default{background:var(--primary-light);color:var(--primary)}
+
+/* ========== Responsive ========== */
+@media(max-width:768px){
+  .sidebar{width:60px}
+  .sidebar-header h1,.sidebar-header p,.nav-text,.sidebar-footer{display:none}
+  .nav-item{justify-content:center}
+  .content{padding:16px}
+  .card{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>纳宝帝AI 智能面试官</h1>
+      <p>HR招聘全流程智能辅助系统</p>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-item active" data-module="1" onclick="navigateTo(1)">
+        <div class="nav-num">1</div>
+        <div class="nav-text">岗位JD分析<small>提取核心要求与能力维度</small></div>
+      </div>
+      <div class="nav-item locked" data-module="2" onclick="navigateTo(2)">
+        <div class="nav-num">2</div>
+        <div class="nav-text">简历管理<small>候选人匹配度分析</small></div>
+      </div>
+      <div class="nav-item locked" data-module="3" onclick="navigateTo(3)">
+        <div class="nav-num">3</div>
+        <div class="nav-text">候选人对比<small>多维交叉分析与排名</small></div>
+      </div>
+      <div class="nav-item locked" data-module="4" onclick="navigateTo(4)">
+        <div class="nav-num">4</div>
+        <div class="nav-text">面试题目生成<small>结构化面试问题与导出</small></div>
+      </div>
+      <div class="nav-item locked" data-module="5" onclick="navigateTo(5)">
+        <div class="nav-num">5</div>
+        <div class="nav-text">录用决策<small>AI推荐与入职方案</small></div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div>数据仅本地处理 · 不经第三方</div>
+      <div style="margin-top:4px">Powered by Kimi AI · Ensemble x3</div>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <div class="main">
+    <header class="header">
+      <div class="header-left">
+        <h2 id="moduleTitle">岗位JD分析</h2>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ 设置</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">↺ 重置</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- ===== Module 1: JD Analysis ===== -->
+      <section class="module active" id="module1">
+        <div class="card">
+          <div class="card-title">📋 岗位描述输入 <span class="badge">第1步</span></div>
+          <p style="color:var(--text-sec);font-size:13px;margin-bottom:16px">输入或上传岗位描述（JD），AI将自动提取核心要求、关键能力维度和评估侧重点。</p>
+          <div class="form-group">
+            <label class="form-label">方式一：粘贴岗位描述</label>
+            <textarea class="form-textarea" id="jdInput" placeholder="请粘贴完整的岗位描述，包括岗位职责、任职要求、薪资范围等..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">方式二：上传文件（支持 PDF / Word / TXT）</label>
+            <div class="upload-zone" id="jdUploadZone" onclick="document.getElementById('jdFileInput').click()">
+              <div class="upload-icon">📄</div>
+              <p>点击或拖拽文件到此处上传</p>
+              <div class="formats">支持 .pdf .doc .docx .txt 格式</div>
+              <input type="file" id="jdFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleJDFileUpload(event)">
+            </div>
+          </div>
+          <div id="jdFileName" style="display:none;margin-bottom:12px">
+            <span class="tag tag-success" id="jdFileTag">📎 文件已加载</span>
+          </div>
+          <button class="btn btn-primary" onclick="analyzeJD()" id="analyzeJDBtn">🚀 开始AI分析</button>
+        </div>
+        <div id="jdResultContainer"></div>
+      </section>
+
+      <!-- ===== Module 2: Resume Management ===== -->
+      <section class="module" id="module2">
+        <div class="card">
+          <div class="card-title">👤 添加候选人简历 <span class="badge">第2步</span></div>
+          <p style="color:var(--text-sec);font-size:13px;margin-bottom:16px">添加一名或多名候选人简历，AI将针对每份简历进行岗位匹配度分析。</p>
+          <div class="form-group">
+            <label class="form-label">候选人姓名</label>
+            <input class="form-input" id="candidateName" placeholder="请输入候选人姓名">
+          </div>
+          <div class="form-group">
+            <label class="form-label">方式一：粘贴简历内容</label>
+            <textarea class="form-textarea" id="resumeInput" placeholder="请粘贴候选人简历内容..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">方式二：上传简历文件（支持 PDF / Word / TXT）</label>
+            <div class="upload-zone" id="resumeUploadZone" onclick="document.getElementById('resumeFileInput').click()">
+              <div class="upload-icon">📄</div>
+              <p>点击或拖拽文件到此处上传</p>
+              <div class="formats">支持 .pdf .doc .docx .txt 格式</div>
+              <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleResumeFileUpload(event)">
+            </div>
+          </div>
+          <div id="resumeFileName" style="display:none;margin-bottom:12px">
+            <span class="tag tag-success" id="resumeFileTag">📎 文件已加载</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="addCandidate()">➕ 添加并分析</button>
+            <button class="btn btn-secondary" onclick="navigateTo(3)" id="goCompareBtn" style="display:none">查看对比 →</button>
+          </div>
+        </div>
+        <div class="card" id="candidateListCard" style="display:none">
+          <div class="card-title">📊 候选人列表 <span class="badge" id="candidateCount">0人</span></div>
+          <div id="candidateList"></div>
+        </div>
+      </section>
+
+      <!-- ===== Module 3: Candidate Comparison ===== -->
+      <section class="module" id="module3">
+        <div class="card">
+          <div class="card-title">📈 多维度交叉分析 <span class="badge">第3步</span></div>
+          <p style="color:var(--text-sec);font-size:13px;margin-bottom:16px">对所有候选人进行多维度交叉分析，生成能力雷达图、综合排名和面试优先级建议。</p>
+          <button class="btn btn-primary" onclick="generateComparison()" id="compareBtn">🔄 生成对比分析</button>
+        </div>
+        <div id="comparisonResult"></div>
+      </section>
+
+      <!-- ===== Module 4: Interview Questions ===== -->
+      <section class="module" id="module4">
+        <div class="card">
+          <div class="card-title">📝 结构化面试题目生成 <span class="badge">第4步</span></div>
+          <p style="color:var(--text-sec);font-size:13px;margin-bottom:16px">基于候选人简历特点、岗位需求，结合<strong>工作经历稳定性、入职动机、红线验证、纳宝帝4D+1价值观</strong>四大维度生成结构化面试问题，支持导出 Word/Excel 面试模板。</p>
+          <div class="form-group">
+            <label class="form-label">选择候选人</label>
+            <select class="form-select" id="questionCandidateSelect" onchange="loadCandidateQuestions()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">纳宝帝4D+1价值观（用于价值观考察题目生成）</label>
+            <input class="form-input" id="valuesInput" placeholder="如：DEPTH（深度）：客户为本、DRIVE（驱动）：自我驱动、DELIVER（交付）：灵活创新、DISCIPLINE（标准）：追求卓越、+1 TEAMWORK（团队合作）" value="DEPTH（深度）：客户为本、DRIVE（驱动）：自我驱动、DELIVER（交付）：灵活创新、DISCIPLINE（标准）：追求卓越、+1 TEAMWORK（团队合作）">
+            <small style="color:var(--text-light);font-size:12px;margin-top:4px;display:block">请输入贵司4D+1价值观具体内容，多个用顿号分隔。AI将据此生成价值观考察问题。</small>
+          </div>
+          <button class="btn btn-primary" onclick="generateQuestions()" id="generateQBtn">🎯 生成面试问题</button>
+        </div>
+        <div id="questionsResult"></div>
+      </section>
+
+      <!-- ===== Module 5: Hiring Decision ===== -->
+      <section class="module" id="module5">
+        <div class="card">
+          <div class="card-title">✅ 录用决策辅助 <span class="badge">第5步</span></div>
+          <p style="color:var(--text-sec);font-size:13px;margin-bottom:16px">输入面试结果或评价，AI给出最终录用建议、薪资参考和新员工管理方案。</p>
+          <div class="form-group">
+            <label class="form-label">选择候选人</label>
+            <select class="form-select" id="decisionCandidateSelect" onchange="loadDecisionView()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">面试评价与反馈</label>
+            <textarea class="form-textarea" id="interviewFeedback" placeholder="请输入面试官的评价、候选人表现、沟通感受等..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="generateDecision()" id="decisionBtn">🤖 生成录用建议</button>
+        </div>
+        <div id="decisionResult"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Settings Modal ===== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙️ 系统设置</h3>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Kimi API Key</label>
+        <input class="form-input" id="apiKeyInput" type="password" placeholder="请输入 Kimi API Key">
+        <small style="color:var(--text-light);font-size:12px;margin-top:4px;display:block">API Key 仅存储在浏览器本地，不会上传至任何服务器。</small>
+      </div>
+      <div class="form-group">
+        <label class="form-label">AI 模型</label>
+        <select class="form-select" id="modelSelect">
+          <option value="moonshot-v1-8k">moonshot-v1-8k（快速模式）</option>
+          <option value="moonshot-v1-32k" selected>moonshot-v1-32k（标准模式）</option>
+          <option value="moonshot-v1-128k">moonshot-v1-128k（长文本模式）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ensemble 轮次（多轮取平均提升稳定性）</label>
+        <select class="form-select" id="ensembleSelect">
+          <option value="1">1轮（快速，不稳定）</option>
+          <option value="2">2轮（平衡）</option>
+          <option value="3" selected>3轮（推荐，最稳定）</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSettings()">取消</button>
+      <button class="btn btn-primary" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Loading Overlay ===== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">AI 分析中...</div>
+  <div class="loading-progress" id="loadingProgress"></div>
+</div>
+
+<!-- ===== Toast Container ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ============================================================
+   State Management
+   ============================================================ */
+const state = {
+  apiKey: localStorage.getItem('kimi_api_key') || 'sk-3ffq0s7naIyvQFeY8tuHrhFe4RlwklLeFNTIegFMwxXyerV0',
+  model: localStorage.getItem('kimi_model') || 'moonshot-v1-32k',
+  ensembleCount: parseInt(localStorage.getItem('ensemble_count') || '3'),
+  currentModule: 1,
+  unlockedModules: [1],
+  jdText: '',
+  jdAnalysis: null,
+  candidates: [],
+  comparison: null
+};
+
+const moduleTitles = {
+  1: '岗位JD分析',
+  2: '简历管理',
+  3: '候选人对比',
+  4: '面试题目生成',
+  5: '录用决策'
+};
+
+/* ============================================================
+   PDF.js Worker Setup
+   ============================================================ */
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+/* ============================================================
+   Utility Functions
+   ============================================================ */
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
+}
+
+function showLoading(text = 'AI 分析中...', progress = '') {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingProgress').textContent = progress;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+
+function updateLoadingProgress(text, progress) {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingProgress').textContent = progress;
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function parseJSONResponse(text) {
+  if (!text) return null;
+  try { return JSON.parse(text); } catch {}
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) { try { return JSON.parse(codeBlock[1].trim()); } catch {} }
+  const jsonObj = text.match(/\{[\s\S]*\}/);
+  if (jsonObj) { try { return JSON.parse(jsonObj[0]); } catch {} }
+  return null;
+}
+
+function getScoreColor(score) {
+  if (score >= 80) return 'var(--success)';
+  if (score >= 60) return 'var(--warning)';
+  return 'var(--error)';
+}
+
+function getScoreTag(score) {
+  if (score >= 80) return `<span class="tag tag-success">${score}分 - 优秀</span>`;
+  if (score >= 60) return `<span class="tag tag-warning">${score}分 - 良好</span>`;
+  return `<span class="tag tag-error">${score}分 - 待提升</span>`;
+}
+
+/* ============================================================
+   File Extraction Functions
+   ============================================================ */
+async function extractFileText(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'txt') {
+    return await file.text();
+  } else if (ext === 'pdf') {
+    return await extractPDFText(file);
+  } else if (ext === 'doc' || ext === 'docx') {
+    return await extractWordText(file);
+  } else {
+    throw new Error('不支持的文件格式，请上传 PDF、Word 或 TXT 文件');
+  }
+}
+
+async function extractPDFText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text.trim();
+}
+
+async function extractWordText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+/* ============================================================
+   Kimi API Integration with Ensemble
+   ============================================================ */
+async function callKimiAPI(messages, temperature = 0.3) {
+  const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${state.apiKey}`
+    },
+    body: JSON.stringify({
+      model: state.model,
+      messages: messages,
+      temperature: temperature,
+      max_tokens: 4096
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    if (response.status === 401) throw new Error('API Key 无效，请在设置中检查');
+    if (response.status === 429) throw new Error('API 调用频率超限，请稍后重试');
+    if (response.status === 400 && errorData.error?.message?.includes('content length')) {
+      throw new Error('内容过长，请在设置中切换更大上下文窗口的模型');
+    }
+    throw new Error(errorData.error?.message || `API 请求失败 (${response.status})`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function ensembleAnalysis(systemPrompt, userPrompt) {
+  const n = state.ensembleCount;
+  const temperatures = n === 1 ? [0.3] : n === 2 ? [0.2, 0.5] : [0.2, 0.4, 0.6];
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt }
+  ];
+
+  const promises = temperatures.map((temp, i) =>
+    callKimiAPI(messages, temp).then(text => {
+      updateLoadingProgress('AI 分析中...', `已完成 ${i + 1}/${n} 轮`);
+      return parseJSONResponse(text);
+    }).catch(err => {
+      console.warn(`Ensemble round ${i + 1} failed:`, err);
+      return null;
+    })
+  );
+
+  const results = await Promise.all(promises);
+  const valid = results.filter(r => r !== null);
+
+  if (valid.length === 0) {
+    throw new Error('所有 AI 分析请求均失败，请检查 API Key 和网络连接');
+  }
+
+  if (valid.length === 1) return valid[0];
+  return mergeEnsembleResults(valid);
+}
+
+function mergeEnsembleResults(results) {
+  const merged = JSON.parse(JSON.stringify(results[0]));
+
+  // Average numeric score fields
+  const numericFields = ['matchScore', 'confidence', 'totalScore', 'valuesFitScore'];
+  for (const field of numericFields) {
+    if (merged[field] !== undefined) {
+      const values = results.filter(r => r[field] !== undefined).map(r => Number(r[field]));
+      if (values.length > 0) {
+        merged[field] = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      }
+    }
+  }
+
+  // Average dimension scores
+  if (merged.dimensionScores) {
+    const allKeys = new Set();
+    results.forEach(r => { if (r.dimensionScores) Object.keys(r.dimensionScores).forEach(k => allKeys.add(k)); });
+    const avgScores = {};
+    for (const key of allKeys) {
+      const values = results.filter(r => r.dimensionScores && r.dimensionScores[key] !== undefined)
+                            .map(r => Number(r.dimensionScores[key]));
+      if (values.length > 0) {
+        avgScores[key] = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      }
+    }
+    merged.dimensionScores = avgScores;
+  }
+
+  // For arrays, take the longest one (most comprehensive)
+  const arrayFields = ['coreRequirements', 'evaluationFocus', 'strengths', 'gaps', 'riskFactors', 'reasons', 'prioritySuggestions', 'riskWarnings', 'trainingNeeds', 'managementTips', 'riskMitigation'];
+  for (const field of arrayFields) {
+    if (merged[field] !== undefined && Array.isArray(merged[field])) {
+      let longest = merged[field];
+      for (const r of results) {
+        if (r[field] && Array.isArray(r[field]) && r[field].length > longest.length) {
+          longest = r[field];
+        }
+      }
+      merged[field] = longest;
+    }
+  }
+
+  // For rankings, take from the result with highest confidence
+  if (merged.rankings) {
+    // Use the first valid rankings
+    for (const r of results) {
+      if (r.rankings && Array.isArray(r.rankings) && r.rankings.length > 0) {
+        merged.rankings = r.rankings;
+        break;
+      }
+    }
+  }
+
+  // Merge valuesAlignment - average overallScore, take longest dimensions array
+  if (merged.valuesAlignment) {
+    const vaScores = results.filter(r => r.valuesAlignment && r.valuesAlignment.overallScore !== undefined)
+                            .map(r => Number(r.valuesAlignment.overallScore));
+    if (vaScores.length > 0) {
+      merged.valuesAlignment.overallScore = Math.round(vaScores.reduce((a, b) => a + b, 0) / vaScores.length);
+    }
+    // Average per-dimension scores
+    if (merged.valuesAlignment.dimensions) {
+      const dimNames = new Set();
+      results.forEach(r => {
+        if (r.valuesAlignment?.dimensions) r.valuesAlignment.dimensions.forEach(d => dimNames.add(d.value));
+      });
+      const mergedDims = [];
+      for (const name of dimNames) {
+        const dimResults = results.map(r => r.valuesAlignment?.dimensions?.find(d => d.value === name)).filter(Boolean);
+        if (dimResults.length > 0) {
+          const scores = dimResults.filter(d => d.score !== undefined).map(d => Number(d.score));
+          mergedDims.push({
+            value: name,
+            assessment: dimResults[0].assessment || '',
+            evidence: dimResults[0].evidence || '需面试验证',
+            score: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+          });
+        }
+      }
+      merged.valuesAlignment.dimensions = mergedDims;
+    }
+  }
+
+  // Merge redLineChecklist - take the longest one
+  if (merged.redLineChecklist) {
+    let longest = merged.redLineChecklist;
+    for (const r of results) {
+      if (r.redLineChecklist && Array.isArray(r.redLineChecklist) && r.redLineChecklist.length > longest.length) {
+        longest = r.redLineChecklist;
+      }
+    }
+    merged.redLineChecklist = longest;
+  }
+
+  // Merge stabilityAnalysis - average tenure if numeric, take first valid for text
+  if (merged.stabilityAnalysis) {
+    // Take the result with the most concerns (most thorough analysis)
+    let mostThorough = merged.stabilityAnalysis;
+    for (const r of results) {
+      if (r.stabilityAnalysis) {
+        const rCount = (r.stabilityAnalysis.concerns?.length || 0) + (r.stabilityAnalysis.gaps?.length || 0);
+        const mCount = (mostThorough.concerns?.length || 0) + (mostThorough.gaps?.length || 0);
+        if (rCount > mCount) mostThorough = r.stabilityAnalysis;
+      }
+    }
+    merged.stabilityAnalysis = mostThorough;
+  }
+
+  // Merge motivationAssessment - take first valid
+  if (!merged.motivationAssessment) {
+    for (const r of results) {
+      if (r.motivationAssessment) { merged.motivationAssessment = r.motivationAssessment; break; }
+    }
+  }
+
+  // For categories (interview questions), take the result with the most categories
+  if (merged.categories && Array.isArray(merged.categories)) {
+    let longestCats = merged.categories;
+    for (const r of results) {
+      if (r.categories && Array.isArray(r.categories) && r.categories.length > longestCats.length) {
+        longestCats = r.categories;
+      }
+    }
+    merged.categories = longestCats;
+  }
+
+  return merged;
+}
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+function navigateTo(moduleNum) {
+  if (!state.unlockedModules.includes(moduleNum)) {
+    showToast('⚠️ 请先完成前序步骤', 'warning');
+    return;
+  }
+  state.currentModule = moduleNum;
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+  document.getElementById(`module${moduleNum}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', parseInt(item.dataset.module) === moduleNum);
+  });
+  document.getElementById('moduleTitle').textContent = moduleTitles[moduleNum];
+
+  if (moduleNum === 4) populateQuestionCandidateSelect();
+  if (moduleNum === 5) populateDecisionCandidateSelect();
+}
+
+function unlockModule(moduleNum) {
+  if (!state.unlockedModules.includes(moduleNum)) {
+    state.unlockedModules.push(moduleNum);
+    const navItem = document.querySelector(`.nav-item[data-module="${moduleNum}"]`);
+    if (navItem) navItem.classList.remove('locked');
+  }
+}
+
+function markModuleCompleted(moduleNum) {
+  const navItem = document.querySelector(`.nav-item[data-module="${moduleNum}"]`);
+  if (navItem) navItem.classList.add('completed');
+}
+
+/* ============================================================
+   Module 1: JD Analysis
+   ============================================================ */
+async function handleJDFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    showLoading('正在解析文件...');
+    const text = await extractFileText(file);
+    state.jdText = text;
+    document.getElementById('jdInput').value = text.substring(0, 5000);
+    document.getElementById('jdFileName').style.display = 'block';
+    document.getElementById('jdFileTag').textContent = `📎 ${file.name} 已加载（${text.length}字）`;
+    hideLoading();
+    showToast('✅ 文件解析成功', 'success');
+  } catch (err) {
+    hideLoading();
+    showToast(`❌ 文件解析失败: ${err.message}`, 'error');
+  }
+}
+
+async function analyzeJD() {
+  let jdText = document.getElementById('jdInput').value.trim();
+  if (!jdText && state.jdText) jdText = state.jdText;
+  if (!jdText) {
+    showToast('⚠️ 请输入或上传岗位描述', 'warning');
+    return;
+  }
+  if (jdText.length < 20) {
+    showToast('⚠️ 岗位描述内容过少，请补充完整', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('analyzeJDBtn');
+  btn.disabled = true;
+  showLoading('正在分析岗位描述...', `准备发起 ${state.ensembleCount} 轮 AI 分析`);
+
+  try {
+    const systemPrompt = `你是一位资深的HR招聘专家和人才评估顾问。你擅长从岗位描述中提取核心要求、定义能力评估维度。请以严谨专业的态度分析岗位描述，输出必须是合法JSON格式。`;
+
+    const userPrompt = `请分析以下岗位描述（JD），提取核心信息并结构化输出。
+
+岗位描述：
+${jdText}
+
+请以JSON格式输出分析结果，严格使用以下结构（不要输出任何JSON以外的内容）：
+{
+  "jobTitle": "岗位名称",
+  "department": "所属部门（如无法判断则填'未指定'）",
+  "coreRequirements": ["核心要求1（一句话）", "核心要求2", ...],
+  "competencyDimensions": [
+    {"name": "能力维度名称", "description": "该维度的具体含义和评估要点", "weight": 权重数字1到100}
+  ],
+  "evaluationFocus": ["评估侧重点1", "评估侧重点2", ...],
+  "salaryRange": "薪资范围参考（如无法判断则填'面议'）",
+  "experienceLevel": "经验要求（如3-5年）",
+  "educationRequirement": "学历要求"
+}
+
+要求：
+1. competencyDimensions 建议5-8个维度，涵盖专业技能、通用能力、经验、性格特质等
+2. weight 之和不需要等于100，表示各维度的相对重要性
+3. coreRequirements 和 evaluationFocus 各3-6条
+4. 每条要求简洁明了，一句话说清楚`;
+
+    const result = await ensembleAnalysis(systemPrompt, userPrompt);
+    state.jdAnalysis = result;
+    renderJDResult(result);
+    unlockModule(2);
+    markModuleCompleted(1);
+    showToast('✅ 岗位分析完成！简历管理已解锁', 'success');
+  } catch (err) {
+    showToast(`❌ 分析失败: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    hideLoading();
+  }
+}
+
+function renderJDResult(data) {
+  const container = document.getElementById('jdResultContainer');
+  const dimensionsHtml = (data.competencyDimensions || []).map(d => `
+    <div class="dimension-item">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${escapeHtml(d.name)}</div>
+        <div style="font-size:12px;color:var(--text-sec)">${escapeHtml(d.description)}</div>
+      </div>
+      <div class="dimension-weight">权重 ${d.weight || '-'}</div>
+    </div>
+  `).join('');
+
+  const reqTags = (data.coreRequirements || []).map(r => `<span class="tag">${escapeHtml(r)}</span>`).join('');
+  const focusTags = (data.evaluationFocus || []).map(f => `<span class="tag tag-success">${escapeHtml(f)}</span>`).join('');
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-title">🎯 岗位分析结果 <span class="badge">AI生成</span></div>
+      <div class="analysis-section">
+        <h4>📌 岗位名称</h4>
+        <p style="font-size:16px;font-weight:600">${escapeHtml(data.jobTitle)}</p>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          ${data.department && data.department !== '未指定' ? `<span class="tag">部门: ${escapeHtml(data.department)}</span>` : ''}
+          ${data.experienceLevel ? `<span class="tag">经验: ${escapeHtml(data.experienceLevel)}</span>` : ''}
+          ${data.educationRequirement ? `<span class="tag">学历: ${escapeHtml(data.educationRequirement)}</span>` : ''}
+          ${data.salaryRange ? `<span class="tag tag-success">薪资: ${escapeHtml(data.salaryRange)}</span>` : ''}
+        </div>
+      </div>
+      <div class="analysis-section">
+        <h4>📋 核心要求</h4>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${reqTags}</div>
+      </div>
+      <div class="analysis-section">
+        <h4>📊 能力评估维度</h4>
+        ${dimensionsHtml}
+      </div>
+      <div class="analysis-section">
+        <h4>🎯 评估侧重点</h4>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">${focusTags}</div>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-primary" onclick="navigateTo(2)">下一步：添加候选人简历 →</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Module 2: Resume Management
+   ============================================================ */
+async function handleResumeFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    showLoading('正在解析简历文件...');
+    const text = await extractFileText(file);
+    document.getElementById('resumeInput').value = text.substring(0, 5000);
+    document.getElementById('resumeFileName').style.display = 'block';
+    document.getElementById('resumeFileTag').textContent = `📎 ${file.name} 已加载（${text.length}字）`;
+    if (!document.getElementById('candidateName').value) {
+      const baseName = file.name.replace(/\.[^.]+$/, '');
+      document.getElementById('candidateName').value = baseName;
+    }
+    hideLoading();
+    showToast('✅ 简历文件解析成功', 'success');
+  } catch (err) {
+    hideLoading();
+    showToast(`❌ 文件解析失败: ${err.message}`, 'error');
+  }
+}
+
+async function addCandidate() {
+  const name = document.getElementById('candidateName').value.trim();
+  let resumeText = document.getElementById('resumeInput').value.trim();
+
+  if (!name) { showToast('⚠️ 请输入候选人姓名', 'warning'); return; }
+  if (!resumeText) { showToast('⚠️ 请输入或上传简历内容', 'warning'); return; }
+  if (!state.jdAnalysis) { showToast('⚠️ 请先完成岗位JD分析', 'warning'); return; }
+
+  const btn = event.target;
+  btn.disabled = true;
+  showLoading(`正在分析 ${name} 的简历...`, `准备发起 ${state.ensembleCount} 轮 AI 分析`);
+
+  try {
+    const systemPrompt = `你是一位资深的HR招聘专家和人才评估顾问。你擅长根据岗位需求对候选人简历进行精准匹配度分析。输出必须是合法JSON格式。`;
+
+    const dimensionsStr = JSON.stringify(state.jdAnalysis.competencyDimensions || []);
+
+    const userPrompt = `基于以下岗位分析结果和候选人简历，进行匹配度分析。
+
+岗位分析结果：
+${JSON.stringify(state.jdAnalysis, null, 2)}
+
+候选人姓名：${name}
+候选人简历：
+${resumeText}
+
+请以JSON格式输出分析结果（不要输出JSON以外的任何内容）：
+{
+  "matchScore": 匹配度分数(0到100的整数),
+  "dimensionScores": {
+    "维度名称（必须与岗位分析中的competencyDimensions的name一致）": 该维度得分(0到100的整数),
+    ...
+  },
+  "strengths": ["核心优势1（一句话）", "核心优势2", ...],
+  "gaps": ["能力差距1", "能力差距2", ...],
+  "riskFactors": ["潜在风险1（如空窗期、频繁跳槽等，如无明显风险则留空数组）"],
+  "summary": "一句话总结该候选人与岗位的匹配情况",
+  "highlights": ["简历亮点1", "亮点2"]
+}
+
+要求：
+1. dimensionScores 必须覆盖岗位分析中所有的 competencyDimensions
+2. 评分要客观，基于简历中能找到的佐证材料
+3. strengths 和 gaps 各2-5条
+4. summary 控制在50字以内`;
+
+    const analysis = await ensembleAnalysis(systemPrompt, userPrompt);
+
+    const candidate = {
+      id: Date.now(),
+      name: name,
+      resumeText: resumeText,
+      analysis: analysis,
+      questions: null,
+      decision: null
+    };
+    state.candidates.push(candidate);
+    renderCandidateList();
+
+    // Clear inputs
+    document.getElementById('candidateName').value = '';
+    document.getElementById('resumeInput').value = '';
+    document.getElementById('resumeFileName').style.display = 'none';
+
+    if (state.candidates.length >= 1) {
+      unlockModule(3);
+      markModuleCompleted(2);
+      document.getElementById('goCompareBtn').style.display = 'inline-flex';
+    }
+
+    showToast(`✅ ${name} 简历分析完成！`, 'success');
+  } catch (err) {
+    showToast(`❌ 分析失败: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    hideLoading();
+  }
+}
+
+function renderCandidateList() {
+  const card = document.getElementById('candidateListCard');
+  const list = document.getElementById('candidateList');
+  const countBadge = document.getElementById('candidateCount');
+
+  if (state.candidates.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  countBadge.textContent = `${state.candidates.length}人`;
+
+  list.innerHTML = state.candidates.map(c => {
+    const score = c.analysis?.matchScore || 0;
+    const scoreColor = getScoreColor(score);
+    const initial = c.name.charAt(0).toUpperCase();
+
+    const dimensionBars = Object.entries(c.analysis?.dimensionScores || {}).map(([dim, sc]) => `
+      <div style="margin-top:4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-sec)">
+          <span>${escapeHtml(dim)}</span><span>${sc}分</span>
+        </div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${sc}%;background:${getScoreColor(sc)}"></div></div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="candidate-item">
+        <div class="candidate-avatar">${initial}</div>
+        <div class="candidate-info">
+          <h4>${escapeHtml(c.name)} ${getScoreTag(score)}</h4>
+          <p>${escapeHtml(c.analysis?.summary || '')}</p>
+          <div style="margin-top:8px">${dimensionBars}</div>
+          ${c.analysis?.strengths?.length ? `<div style="margin-top:6px"><small style="color:var(--success)">✓ ${escapeHtml(c.analysis.strengths.slice(0,2).join('；'))}</small></div>` : ''}
+          ${c.analysis?.gaps?.length ? `<div style="margin-top:2px"><small style="color:var(--error)">✗ ${escapeHtml(c.analysis.gaps.slice(0,2).join('；'))}</small></div>` : ''}
+        </div>
+        <div class="candidate-actions">
+          <button class="btn btn-ghost btn-sm" onclick="removeCandidate(${c.id})">删除</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function removeCandidate(id) {
+  state.candidates = state.candidates.filter(c => c.id !== id);
+  renderCandidateList();
+  if (state.candidates.length === 0) {
+    document.getElementById('goCompareBtn').style.display = 'none';
+  }
+  showToast('已删除候选人', 'info');
+}
+
+/* ============================================================
+   Module 3: Candidate Comparison
+   ============================================================ */
+async function generateComparison() {
+  if (state.candidates.length === 0) {
+    showToast('⚠️ 请先添加候选人', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('compareBtn');
+  btn.disabled = true;
+  showLoading('正在生成对比分析...', `准备发起 ${state.ensembleCount} 轮 AI 分析`);
+
+  try {
+    const dimensions = (state.jdAnalysis.competencyDimensions || []).map(d => d.name);
+
+    const candidatesData = state.candidates.map(c => ({
+      name: c.name,
+      matchScore: c.analysis?.matchScore,
+      dimensionScores: c.analysis?.dimensionScores,
+      strengths: c.analysis?.strengths,
+      gaps: c.analysis?.gaps,
+      summary: c.analysis?.summary
+    }));
+
+    const systemPrompt = `你是一位资深HR招聘专家和人才评估顾问。你擅长对多位候选人进行多维度交叉对比分析，给出客观的排名和面试优先级建议。输出必须是合法JSON格式。`;
+
+    const userPrompt = `基于以下多位候选人的分析结果，进行综合对比分析。
+
+岗位名称：${state.jdAnalysis.jobTitle}
+评估维度：${dimensions.join('、')}
+
+候选人分析结果：
+${JSON.stringify(candidatesData, null, 2)}
+
+请以JSON格式输出（不要输出JSON以外的任何内容）：
+{
+  "rankings": [
+    {
+      "candidateName": "候选人姓名",
+      "rank": 排名数字,
+      "totalScore": 综合得分(0-100整数),
+      "reason": "排名理由（一句话）"
+    }
+  ],
+  "prioritySuggestions": ["面试优先级建议1", "建议2", ...],
+  "riskWarnings": ["整体风险提示1", ...],
+  "overallAssessment": "对所有候选人的整体评价（2-3句话）"
+}
+
+要求：
+1. rankings 必须包含所有候选人，按总分从高到低排序
+2. prioritySuggestions 给出3-5条具体的面试安排建议
+3. 客观公正，基于数据说话`;
+
+    const result = await ensembleAnalysis(systemPrompt, userPrompt);
+    state.comparison = result;
+    renderComparisonResult(result, dimensions);
+    unlockModule(4);
+    markModuleCompleted(3);
+    showToast('✅ 对比分析完成！面试题目生成已解锁', 'success');
+  } catch (err) {
+    showToast(`❌ 对比分析失败: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    hideLoading();
+  }
+}
+
+function renderComparisonResult(data, dimensions) {
+  const container = document.getElementById('comparisonResult');
+
+  // Build radar chart data
+  const colors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
+  const datasets = state.candidates.map((c, i) => {
+    const scores = dimensions.map(d => c.analysis?.dimensionScores?.[d] || 0);
+    return {
+      label: c.name,
+      data: scores,
+      borderColor: colors[i % colors.length],
+      backgroundColor: colors[i % colors.length] + '20',
+      borderWidth: 2,
+      pointBackgroundColor: colors[i % colors.length],
+      pointRadius: 4
+    };
+  });
+
+  // Rankings table
+  const rankingsHtml = (data.rankings || []).map(r => {
+    const candidate = state.candidates.find(c => c.name === r.candidateName);
+    const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : `${r.rank}`;
+    return `
+      <tr>
+        <td style="font-size:18px;text-align:center">${medal}</td>
+        <td style="font-weight:600">${escapeHtml(r.candidateName)}</td>
+        <td><span style="font-size:16px;font-weight:700;color:${getScoreColor(r.totalScore)}">${r.totalScore}</span></td>
+        <td>${escapeHtml(r.reason)}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="navigateTo(4)">生成面试题</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  const suggestionTags = (data.prioritySuggestions || []).map(s => `<li style="margin-bottom:4px">💡 ${escapeHtml(s)}</li>`).join('');
+  const riskTags = (data.riskWarnings || []).map(r => `<li style="margin-bottom:4px;color:var(--warning)">⚠️ ${escapeHtml(r)}</li>`).join('');
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-title">📊 能力雷达图</div>
+      <div class="chart-container">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏆 综合排名</div>
+      <table class="table">
+        <thead>
+          <tr><th style="text-align:center;width:50px">排名</th><th>候选人</th><th style="width:80px">综合得分</th><th>排名理由</th><th style="width:120px">操作</th></tr>
+        </thead>
+        <tbody>${rankingsHtml}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 面试优先级建议</div>
+      <ul style="list-style:none;padding:0">${suggestionTags}</ul>
+    </div>
+    ${riskTags ? `
+    <div class="card">
+      <div class="card-title">⚠️ 风险提示</div>
+      <ul style="list-style:none;padding:0">${riskTags}</ul>
+    </div>` : ''}
+    <div class="card">
+      <div class="card-title">📝 整体评价</div>
+      <p style="color:var(--text-sec);line-height:1.8">${escapeHtml(data.overallAssessment)}</p>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" onclick="navigateTo(4)">下一步：生成面试题目 →</button>
+      </div>
+    </div>
+  `;
+
+  // Render radar chart
+  setTimeout(() => {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'radar',
+      data: { labels: dimensions, datasets: datasets },
+      options: {
+        responsive: true,
+        scales: {
+          r: {
+            min: 0, max: 100,
+            ticks: { stepSize: 20, font: { size: 10 } },
+            pointLabels: { font: { size: 12 } }
+          }
+        },
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 13 }, padding: 12 } }
+        }
+      }
+    });
+  }, 100);
+}
+
+/* ============================================================
+   Module 4: Interview Question Generation
+   ============================================================ */
+function populateQuestionCandidateSelect() {
+  const select = document.getElementById('questionCandidateSelect');
+  select.innerHTML = '<option value="">-- 请选择候选人 --</option>' +
+    state.candidates.map(c => `<option value="${c.id}">${escapeHtml(c.name)}（匹配度${c.analysis?.matchScore || 0}分）</option>`).join('');
+}
+
+function loadCandidateQuestions() {
+  const select = document.getElementById('questionCandidateSelect');
+  const candidateId = parseInt(select.value);
+  if (!candidateId) { document.getElementById('questionsResult').innerHTML = ''; return; }
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (candidate?.questions) {
+    renderQuestions(candidate);
+  } else {
+    document.getElementById('questionsResult').innerHTML = '';
+  }
+}
+
+async function generateQuestions() {
+  const select = document.getElementById('questionCandidateSelect');
+  const candidateId = parseInt(select.value);
+  if (!candidateId) { showToast('⚠️ 请选择候选人', 'warning'); return; }
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (!candidate) return;
+
+  const valuesInput = document.getElementById('valuesInput').value.trim() || 'DEPTH（深度）：客户为本、DRIVE（驱动）：自我驱动、DELIVER（交付）：灵活创新、DISCIPLINE（标准）：追求卓越、+1 TEAMWORK（团队合作）';
+
+  const btn = document.getElementById('generateQBtn');
+  btn.disabled = true;
+  showLoading(`正在为 ${candidate.name} 生成面试问题...`, `准备发起 ${state.ensembleCount} 轮 AI 分析`);
+
+  try {
+    const systemPrompt = `你是一位资深HR招聘专家和面试官，服务于纳宝帝集团（Nabati Group，快消品行业）。你擅长根据岗位需求和候选人简历特点设计有针对性的结构化面试问题，尤其擅长工作经历稳定性分析、入职动机评估、红线验证和企业价值观考察。输出必须是合法JSON格式。`;
+
+    const userPrompt = `基于以下岗位需求和候选人简历分析，生成结构化面试问题。
+
+岗位分析：
+${JSON.stringify(state.jdAnalysis, null, 2)}
+
+候选人姓名：${candidate.name}
+候选人简历分析：
+${JSON.stringify(candidate.analysis, null, 2)}
+
+候选人简历原文（用于工作经历时间线分析）：
+${candidate.resumeText}
+
+纳宝帝4D+1价值观：${valuesInput}
+
+4D+1价值观释义（用于设计考察问题时参考）：
+- DEPTH（深度）：客户为本 — 以客户需求为中心，深入理解客户，为客户创造价值
+- DRIVE（驱动）：自我驱动 — 具备内驱力，主动设定目标并持续追求进步
+- DELIVER（交付）：灵活创新 — 在交付结果的同时灵活应变，以创新方式解决问题
+- DISCIPLINE（标准）：追求卓越 — 以高标准要求自己，持续优化，追求卓越品质
+- +1 TEAMWORK（团队合作）：团队协作 — 跨部门协同，共享资源，共同达成目标
+
+请以JSON格式输出（不要输出JSON以外的任何内容）：
+{
+  "categories": [
+    {
+      "category": "类别名称",
+      "categoryType": "default 或 stability 或 motivation 或 redline 或 values",
+      "questions": [
+        {
+          "question": "面试问题内容",
+          "purpose": "这道题的考察目的",
+          "expectedAnswer": "期望回答的要点",
+          "difficulty": "简单或中等或困难",
+          "followUp": "追问方向（可选）"
+        }
+      ]
+    }
+  ],
+  "stabilityAnalysis": {
+    "timelineSummary": "候选人工作经历时间线概述",
+    "averageTenure": "平均每份工作任职年限（如2.5年）",
+    "jobHoppingRisk": "低 或 中 或 高",
+    "gaps": ["空窗期或时间异常说明1", "说明2（如无则为空数组）"],
+    "concerns": ["稳定性关注点1", "关注点2"],
+    "positiveSignals": ["稳定性正面信号1（如长期任职、内部晋升等）"]
+  },
+  "motivationAssessment": {
+    "indicators": ["从简历中观察到的动机信号1", "信号2"],
+    "riskLevel": "低 或 中 或 高",
+    "attentionPoints": ["面试中需重点关注的动机问题1", "问题2"],
+    "retentionRisk": "流失风险评估（一句话）"
+  },
+  "redLineChecklist": [
+    {
+      "item": "检查项名称（如：学历真实性、工作经历核实、竞业限制、薪资流水等）",
+      "verificationMethod": "验证方式（如：要求提供学历证书原件、联系前雇主HR核实等）",
+      "riskLevel": "低 或 中 或 高",
+      "notes": "注意事项"
+    }
+  ],
+  "valuesAlignment": {
+    "overallScore": 价值观匹配预估分(0-100整数),
+    "dimensions": [
+      {
+        "value": "价值观维度名称",
+        "assessment": "基于简历的预判评估",
+        "evidence": "简历中的佐证（如无明确佐证则填'需面试验证'）",
+        "score": 预估分(0-100整数)
+      }
+    ]
+  },
+  "totalQuestions": 总题数,
+  "estimatedTime": "预计面试时长（如90分钟）"
+}
+
+要求：
+1. categories 必须包含以下类别（按顺序）：
+   a. "专业技能与岗位胜任力"（categoryType: "default"）— 3-5题
+   b. "项目经验与实操能力"（categoryType: "default"）— 3-4题
+   c. "工作经历稳定性验证"（categoryType: "stability"）— 3-5题，针对简历中的时间线、跳槽频率、空窗期设计验证问题
+   d. "入职动机评估"（categoryType: "motivation"）— 3-4题，考察求职动机、职业规划、对纳宝帝的了解程度
+   e. "红线验证"（categoryType: "redline"）— 3-4题，包括经历真实性、竞业限制、利益冲突等敏感问题
+   f. "纳宝帝4D+1价值观考察"（categoryType: "values"）— 针对DEPTH（客户为本）、DRIVE（自我驱动）、DELIVER（灵活创新）、DISCIPLINE（追求卓越）、+1 TEAMWORK（团队合作）每个价值观维度设计1-2道情景题或行为题
+   g. "情景模拟"（categoryType: "default"）— 1-2题（可选）
+2. 工作经历稳定性验证的问题必须基于候选人简历中实际的时间线，针对性设计
+3. 红线验证问题要直接、专业，不留模糊空间
+4. 价值观考察要结合纳宝帝快消品行业特点，设计贴近实际工作场景的问题
+5. stabilityAnalysis 必须基于简历原文中的工作时间信息分析
+6. redLineChecklist 至少4项
+7. valuesAlignment.dimensions 必须覆盖全部5个4D+1价值观维度（DEPTH、DRIVE、DELIVER、DISCIPLINE、+1 TEAMWORK）`;
+
+    const result = await ensembleAnalysis(systemPrompt, userPrompt);
+    candidate.questions = result;
+    renderQuestions(candidate);
+
+    if (state.candidates.some(c => c.questions)) {
+      unlockModule(5);
+      markModuleCompleted(4);
+    }
+    showToast(`✅ ${candidate.name} 的面试问题已生成！`, 'success');
+  } catch (err) {
+    showToast(`❌ 生成失败: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    hideLoading();
+  }
+}
+
+function renderQuestions(candidate) {
+  const container = document.getElementById('questionsResult');
+  const cats = candidate.questions?.categories || [];
+  const difficultyMap = { '简单': 'difficulty-easy', '中等': 'difficulty-medium', '困难': 'difficulty-hard' };
+
+  const catIconMap = {
+    'stability': '<span class="category-icon cat-stability">📊</span>',
+    'motivation': '<span class="category-icon cat-motivation">🚀</span>',
+    'redline': '<span class="category-icon cat-redline">🚨</span>',
+    'values': '<span class="category-icon cat-values">💎</span>',
+    'default': '<span class="category-icon cat-default">📝</span>'
+  };
+
+  // Build special analysis panels
+  let specialPanelsHtml = '';
+
+  // Stability Analysis Panel
+  const sa = candidate.questions?.stabilityAnalysis;
+  if (sa) {
+    const riskClass = sa.jobHoppingRisk === '低' ? 'risk-low' : sa.jobHoppingRisk === '中' ? 'risk-medium' : 'risk-high';
+    specialPanelsHtml += `
+      <div class="special-panel stability">
+        <h4><span class="panel-icon">📊</span> 工作经历稳定性分析 <span class="risk-badge ${riskClass}">跳槽风险: ${escapeHtml(sa.jobHoppingRisk || '未知')}</span></h4>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">
+          <div><span style="font-size:12px;color:var(--text-sec)">平均任职年限</span><div style="font-size:18px;font-weight:700;color:#3B82F6">${escapeHtml(sa.averageTenure || '未知')}</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--text-sec);margin-bottom:8px">${escapeHtml(sa.timelineSummary || '')}</p>
+        ${sa.gaps?.length ? `<div style="margin-top:8px"><strong style="font-size:13px">⚠️ 时间异常/空窗期：</strong>${sa.gaps.map(g => `<span class="tag tag-warning">${escapeHtml(g)}</span>`).join('')}</div>` : ''}
+        ${sa.concerns?.length ? `<div style="margin-top:8px"><strong style="font-size:13px">关注点：</strong><ul style="list-style:none;padding:0;margin-top:4px">${sa.concerns.map(c => `<li style="font-size:12px;color:var(--text-sec);margin-bottom:2px">• ${escapeHtml(c)}</li>`).join('')}</ul></div>` : ''}
+        ${sa.positiveSignals?.length ? `<div style="margin-top:8px"><strong style="font-size:13px;color:var(--success)">✓ 正面信号：</strong>${sa.positiveSignals.map(s => `<span class="tag tag-success">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // Motivation Assessment Panel
+  const ma = candidate.questions?.motivationAssessment;
+  if (ma) {
+    const riskClass = ma.riskLevel === '低' ? 'risk-low' : ma.riskLevel === '中' ? 'risk-medium' : 'risk-high';
+    specialPanelsHtml += `
+      <div class="special-panel motivation">
+        <h4><span class="panel-icon">🚀</span> 入职动机评估 <span class="risk-badge ${riskClass}">流失风险: ${escapeHtml(ma.riskLevel || '未知')}</span></h4>
+        ${ma.indicators?.length ? `<div style="margin-bottom:8px"><strong style="font-size:13px">简历中的动机信号：</strong><ul style="list-style:none;padding:0;margin-top:4px">${ma.indicators.map(i => `<li style="font-size:12px;color:var(--text-sec);margin-bottom:2px">• ${escapeHtml(i)}</li>`).join('')}</ul></div>` : ''}
+        ${ma.attentionPoints?.length ? `<div style="margin-bottom:8px"><strong style="font-size:13px">面试中需重点关注：</strong><ul style="list-style:none;padding:0;margin-top:4px">${ma.attentionPoints.map(a => `<li style="font-size:12px;color:var(--warning);margin-bottom:2px">⚠️ ${escapeHtml(a)}</li>`).join('')}</ul></div>` : ''}
+        ${ma.retentionRisk ? `<p style="font-size:13px;color:var(--text-sec);margin-top:6px"><strong>流失风险评估：</strong>${escapeHtml(ma.retentionRisk)}</p>` : ''}
+      </div>
+    `;
+  }
+
+  // Red Line Checklist Panel
+  const rlc = candidate.questions?.redLineChecklist;
+  if (rlc && rlc.length) {
+    specialPanelsHtml += `
+      <div class="special-panel redline">
+        <h4><span class="panel-icon">🚨</span> 红线验证清单</h4>
+        ${rlc.map(item => {
+          const rc = item.riskLevel === '低' ? 'risk-low' : item.riskLevel === '中' ? 'risk-medium' : 'risk-high';
+          return `
+          <div class="checklist-item">
+            <div class="checklist-box"></div>
+            <div class="checklist-content">
+              <div class="ci-title">${escapeHtml(item.item)} <span class="risk-badge ${rc}">${escapeHtml(item.riskLevel || '中')}</span></div>
+              <div class="ci-method">验证方式：${escapeHtml(item.verificationMethod || '')}</div>
+              ${item.notes ? `<div class="ci-method" style="color:var(--warning)">注意：${escapeHtml(item.notes)}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // Values Alignment Panel
+  const va = candidate.questions?.valuesAlignment;
+  if (va && va.dimensions?.length) {
+    const scoreColor = getScoreColor(va.overallScore || 0);
+    specialPanelsHtml += `
+      <div class="special-panel values">
+        <h4><span class="panel-icon">💎</span> 纳宝帝4D+1价值观匹配预估 <span style="font-size:20px;font-weight:700;color:${scoreColor}">${va.overallScore || '-'}分</span></h4>
+        ${va.dimensions.map(d => {
+          const sc = getScoreColor(d.score || 0);
+          return `
+          <div class="value-dimension">
+            <div class="value-name">${escapeHtml(d.value)}</div>
+            <div class="value-assess">
+              ${escapeHtml(d.assessment || '')}
+              ${d.evidence && d.evidence !== '需面试验证' ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px">佐证：${escapeHtml(d.evidence)}</div>` : `<div style="font-size:11px;color:var(--warning);margin-top:2px">⚠️ 需面试验证</div>`}
+            </div>
+            <div class="value-score" style="color:${sc}">${d.score || '-'}<span style="font-size:12px;color:var(--text-light)">/100</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // Build question categories
+  const categoriesHtml = cats.map(cat => {
+    const icon = catIconMap[cat.categoryType] || catIconMap['default'];
+    const panelClass = cat.categoryType === 'stability' ? 'stability' : cat.categoryType === 'motivation' ? 'motivation' : cat.categoryType === 'redline' ? 'redline' : cat.categoryType === 'values' ? 'values' : '';
+    return `
+    <div style="margin-bottom:20px">
+      <h4 style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--primary)">${icon} ${escapeHtml(cat.category)}</h4>
+      ${(cat.questions || []).map((q, i) => `
+        <div class="question-card">
+          <h5>
+            <span>${i + 1}. ${escapeHtml(q.question)}</span>
+            <span class="tag ${difficultyMap[q.difficulty] || ''}">${escapeHtml(q.difficulty || '中等')}</span>
+          </h5>
+          <div style="font-size:13px;color:var(--text-sec);margin-top:6px">
+            <div><strong>考察目的：</strong>${escapeHtml(q.purpose)}</div>
+            <div style="margin-top:4px"><strong>期望回答：</strong>${escapeHtml(q.expectedAnswer)}</div>
+            ${q.followUp ? `<div style="margin-top:4px"><strong>追问方向：</strong>${escapeHtml(q.followUp)}</div>` : ''}
+          </div>
+          <div class="question-meta">
+            <span>面试官评分: ____ / 10</span>
+            <span>候选人回答摘要:</span>
+          </div>
+          <div style="margin-top:8px;padding:8px;border:1px dashed var(--border);border-radius:4px;font-size:12px;color:var(--text-light);min-height:40px">
+            （面试记录区）
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-title">
+        📝 ${escapeHtml(candidate.name)} 的面试问题
+        <span class="badge">${candidate.questions?.totalQuestions || cats.reduce((s, c) => s + (c.questions?.length || 0), 0)}题</span>
+        <span class="badge">预计${escapeHtml(candidate.questions?.estimatedTime || '90分钟')}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-secondary btn-sm" onclick="exportQuestionsExcel(${candidate.id})">📊 导出 Excel</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportQuestionsWord(${candidate.id})">📄 导出 Word</button>
+      </div>
+      ${specialPanelsHtml}
+      <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
+        <h4 style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text)">📋 面试问题列表</h4>
+      </div>
+      ${categoriesHtml}
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-primary" onclick="navigateTo(5)">下一步：录用决策 →</button>
+      </div>
+    </div>
+  `;
+}
+
+function exportQuestionsExcel(candidateId) {
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (!candidate?.questions) return;
+
+  const rows = [];
+  (candidate.questions.categories || []).forEach(cat => {
+    (cat.questions || []).forEach((q, i) => {
+      rows.push({
+        '类别': cat.category,
+        '类别类型': cat.categoryType || 'default',
+        '序号': i + 1,
+        '面试问题': q.question,
+        '考察目的': q.purpose,
+        '期望回答要点': q.expectedAnswer,
+        '难度': q.difficulty || '',
+        '追问方向': q.followUp || '',
+        '面试官评分(1-10)': '',
+        '候选人回答摘要': '',
+        '备注': ''
+      });
+    });
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 16 }, { wch: 10 }, { wch: 6 }, { wch: 40 }, { wch: 25 }, { wch: 35 }, { wch: 8 }, { wch: 20 }, { wch: 14 }, { wch: 30 }, { wch: 15 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '面试问题');
+
+  // Stability Analysis sheet
+  const sa = candidate.questions.stabilityAnalysis;
+  if (sa) {
+    const saRows = [
+      { '分析项目': '时间线概述', '分析结果': sa.timelineSummary || '' },
+      { '分析项目': '平均任职年限', '分析结果': sa.averageTenure || '' },
+      { '分析项目': '跳槽风险等级', '分析结果': sa.jobHoppingRisk || '' },
+      { '分析项目': '空窗期/时间异常', '分析结果': (sa.gaps || []).join('；') || '无' },
+      { '分析项目': '稳定性关注点', '分析结果': (sa.concerns || []).join('；') || '无' },
+      { '分析项目': '正面信号', '分析结果': (sa.positiveSignals || []).join('；') || '无' }
+    ];
+    const wsSa = XLSX.utils.json_to_sheet(saRows);
+    wsSa['!cols'] = [{ wch: 18 }, { wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, wsSa, '稳定性分析');
+  }
+
+  // Red Line Checklist sheet
+  const rlc = candidate.questions.redLineChecklist;
+  if (rlc && rlc.length) {
+    const rlcRows = rlc.map((item, i) => ({
+      '序号': i + 1,
+      '检查项': item.item || '',
+      '验证方式': item.verificationMethod || '',
+      '风险等级': item.riskLevel || '',
+      '注意事项': item.notes || '',
+      '验证结果': '□ 通过  □ 未通过  □ 待验证',
+      '备注': ''
+    }));
+    const wsRlc = XLSX.utils.json_to_sheet(rlcRows);
+    wsRlc['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 25 }, { wch: 18 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsRlc, '红线验证清单');
+  }
+
+  // Values Alignment sheet
+  const va = candidate.questions.valuesAlignment;
+  if (va && va.dimensions?.length) {
+    const vaRows = [
+      { '价值观维度': '综合匹配预估分', '评估': '', '佐证': '', '得分': va.overallScore || '', '面试实际评分': '' }
+    ];
+    va.dimensions.forEach(d => {
+      vaRows.push({
+        '价值观维度': d.value || '',
+        '评估': d.assessment || '',
+        '佐证': d.evidence || '',
+        '得分': d.score || '',
+        '面试实际评分': ''
+      });
+    });
+    const wsVa = XLSX.utils.json_to_sheet(vaRows);
+    wsVa['!cols'] = [{ wch: 18 }, { wch: 30 }, { wch: 25 }, { wch: 10 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, wsVa, '价值观匹配');
+  }
+
+  // Summary sheet
+  const summaryRows = [
+    { '项目': '候选人姓名', '内容': candidate.name },
+    { '项目': '岗位名称', '内容': state.jdAnalysis?.jobTitle || '' },
+    { '项目': '匹配度评分', '内容': candidate.analysis?.matchScore || '' },
+    { '项目': '总题数', '内容': candidate.questions.totalQuestions || rows.length },
+    { '项目': '预计时长', '内容': candidate.questions.estimatedTime || '' },
+    { '项目': '稳定性-跳槽风险', '内容': sa?.jobHoppingRisk || '未分析' },
+    { '项目': '稳定性-平均任职', '内容': sa?.averageTenure || '未分析' },
+    { '项目': '动机-流失风险', '内容': candidate.questions.motivationAssessment?.riskLevel || '未分析' },
+    { '项目': '价值观匹配预估', '内容': va?.overallScore ? va.overallScore + '分' : '未分析' },
+    { '项目': '生成时间', '内容': new Date().toLocaleString('zh-CN') }
+  ];
+  const ws2 = XLSX.utils.json_to_sheet(summaryRows);
+  ws2['!cols'] = [{ wch: 18 }, { wch: 40 }];
+  XLSX.utils.book_append_sheet(wb, ws2, '面试概要');
+
+  XLSX.writeFile(wb, `${candidate.name}_面试问题模板.xlsx`);
+  showToast('✅ Excel 文件已导出', 'success');
+}
+
+function exportQuestionsWord(candidateId) {
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (!candidate?.questions) return;
+
+  const cats = candidate.questions.categories || [];
+  const sa = candidate.questions.stabilityAnalysis;
+  const ma = candidate.questions.motivationAssessment;
+  const rlc = candidate.questions.redLineChecklist;
+  const va = candidate.questions.valuesAlignment;
+
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"><title>面试问题 - ${candidate.name}</title>
+    <style>
+      body { font-family: "Microsoft YaHei", sans-serif; font-size: 12pt; line-height: 1.6; }
+      h1 { font-size: 18pt; color: #4F46E5; border-bottom: 2px solid #4F46E5; padding-bottom: 8px; }
+      h2 { font-size: 14pt; color: #4F46E5; margin-top: 20px; }
+      h3 { font-size: 12pt; color: #333; margin-top: 16px; border-left: 4px solid #4F46E5; padding-left: 10px; }
+      .meta { color: #666; font-size: 11pt; margin: 10px 0; }
+      .question { margin: 12px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+      .question-title { font-weight: bold; font-size: 12pt; }
+      .question-detail { color: #555; font-size: 11pt; margin-top: 4px; }
+      .difficulty { font-size: 10pt; padding: 2px 8px; border-radius: 10px; }
+      .score-line { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+      td { padding: 6px 10px; border: 1px solid #ddd; }
+      .panel { padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
+      .panel-stability { background: #EFF6FF; border-left: 4px solid #3B82F6; }
+      .panel-motivation { background: #F0FDF4; border-left: 4px solid #10B981; }
+      .panel-redline { background: #FEF2F2; border-left: 4px solid #EF4444; }
+      .panel-values { background: #FAF5FF; border-left: 4px solid #8B5CF6; }
+      .risk-low { color: #065F46; font-weight: bold; }
+      .risk-medium { color: #92400E; font-weight: bold; }
+      .risk-high { color: #991B1B; font-weight: bold; }
+    </style></head><body>
+    <h1>面试评估表</h1>
+    <div class="meta">
+      <p><strong>候选人：</strong>${candidate.name} ｜ <strong>岗位：</strong>${escapeHtml(state.jdAnalysis?.jobTitle || '')}</p>
+      <p><strong>匹配度评分：</strong>${candidate.analysis?.matchScore || '-'}分 ｜ <strong>面试时间：</strong>______________ ｜ <strong>面试官：</strong>______________</p>
+      <p><strong>总题数：</strong>${candidate.questions.totalQuestions || ''} ｜ <strong>预计时长：</strong>${escapeHtml(candidate.questions.estimatedTime || '')}</p>
+    </div>
+  `;
+
+  // Stability Analysis
+  if (sa) {
+    const riskClass = sa.jobHoppingRisk === '低' ? 'risk-low' : sa.jobHoppingRisk === '中' ? 'risk-medium' : 'risk-high';
+    html += `
+      <div class="panel panel-stability">
+        <h3>📊 工作经历稳定性分析</h3>
+        <p><strong>平均任职年限：</strong>${escapeHtml(sa.averageTenure || '未知')} ｜ <strong>跳槽风险：</strong><span class="${riskClass}">${escapeHtml(sa.jobHoppingRisk || '未知')}</span></p>
+        <p>${escapeHtml(sa.timelineSummary || '')}</p>
+        ${sa.gaps?.length ? `<p><strong>⚠️ 时间异常/空窗期：</strong></p><ul>${sa.gaps.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>` : ''}
+        ${sa.concerns?.length ? `<p><strong>关注点：</strong></p><ul>${sa.concerns.map(c => `<li>${escapeHtml(c)}</li>`).join('')}</ul>` : ''}
+        ${sa.positiveSignals?.length ? `<p><strong style="color:#065F46">✓ 正面信号：</strong></p><ul>${sa.positiveSignals.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>` : ''}
+      </div>
+    `;
+  }
+
+  // Motivation Assessment
+  if (ma) {
+    const riskClass = ma.riskLevel === '低' ? 'risk-low' : ma.riskLevel === '中' ? 'risk-medium' : 'risk-high';
+    html += `
+      <div class="panel panel-motivation">
+        <h3>🚀 入职动机评估</h3>
+        <p><strong>流失风险：</strong><span class="${riskClass}">${escapeHtml(ma.riskLevel || '未知')}</span></p>
+        ${ma.indicators?.length ? `<p><strong>简历中的动机信号：</strong></p><ul>${ma.indicators.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
+        ${ma.attentionPoints?.length ? `<p><strong>面试中需重点关注：</strong></p><ul>${ma.attentionPoints.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ul>` : ''}
+        ${ma.retentionRisk ? `<p><strong>流失风险评估：</strong>${escapeHtml(ma.retentionRisk)}</p>` : ''}
+      </div>
+    `;
+  }
+
+  // Red Line Checklist
+  if (rlc && rlc.length) {
+    html += `
+      <div class="panel panel-redline">
+        <h3>🚨 红线验证清单</h3>
+        <table>
+          <tr><th style="width:5%">序号</th><th style="width:20%">检查项</th><th style="width:25%">验证方式</th><th style="width:10%">风险</th><th style="width:15%">注意事项</th><th style="width:15%">验证结果</th><th>备注</th></tr>
+          ${rlc.map((item, i) => {
+            const rc = item.riskLevel === '低' ? 'risk-low' : item.riskLevel === '中' ? 'risk-medium' : 'risk-high';
+            return `<tr><td>${i + 1}</td><td>${escapeHtml(item.item || '')}</td><td>${escapeHtml(item.verificationMethod || '')}</td><td class="${rc}">${escapeHtml(item.riskLevel || '')}</td><td>${escapeHtml(item.notes || '')}</td><td>□通过 □未通过 □待验证</td><td></td></tr>`;
+          }).join('')}
+        </table>
+      </div>
+    `;
+  }
+
+  // Values Alignment
+  if (va && va.dimensions?.length) {
+    html += `
+      <div class="panel panel-values">
+        <h3>💎 纳宝帝4D+1价值观匹配预估 ｜ 综合预估分：${va.overallScore || '-'}分</h3>
+        <table>
+          <tr><th style="width:18%">价值观维度</th><th style="width:30%">预判评估</th><th style="width:27%">佐证</th><th style="width:10%">预估分</th><th style="width:15%">面试实际评分</th></tr>
+          ${va.dimensions.map(d => `<tr><td><strong>${escapeHtml(d.value || '')}</strong></td><td>${escapeHtml(d.assessment || '')}</td><td>${escapeHtml(d.evidence || '')}</td><td>${d.score || '-'}</td><td>____ / 100</td></tr>`).join('')}
+        </table>
+      </div>
+    `;
+  }
+
+  // Question categories
+  html += `<h2>📋 面试问题列表</h2>`;
+  cats.forEach(cat => {
+    const iconMap = { 'stability': '📊 ', 'motivation': '🚀 ', 'redline': '🚨 ', 'values': '💎 ', 'default': '' };
+    const icon = iconMap[cat.categoryType] || '';
+    html += `<h2>${icon}${escapeHtml(cat.category)}</h2>`;
+    (cat.questions || []).forEach((q, i) => {
+      html += `
+        <div class="question">
+          <div class="question-title">${i + 1}. ${escapeHtml(q.question)} <span class="difficulty">[${escapeHtml(q.difficulty || '中等')}]</span></div>
+          <div class="question-detail"><strong>考察目的：</strong>${escapeHtml(q.purpose)}</div>
+          <div class="question-detail"><strong>期望回答：</strong>${escapeHtml(q.expectedAnswer)}</div>
+          ${q.followUp ? `<div class="question-detail"><strong>追问方向：</strong>${escapeHtml(q.followUp)}</div>` : ''}
+          <div class="score-line">
+            <strong>评分(1-10):</strong> ______ ｜ <strong>回答摘要：</strong><br>
+            _________________________________________________<br>
+            _________________________________________________<br>
+            <strong>面试官备注：</strong><br>
+            _________________________________________________
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  html += `
+    <h2>综合评价</h2>
+    <table>
+      <tr><td style="width:30%"><strong>整体表现</strong></td><td>_________________________________</td></tr>
+      <tr><td><strong>优势</strong></td><td>_________________________________</td></tr>
+      <tr><td><strong>不足</strong></td><td>_________________________________</td></tr>
+      <tr><td><strong>稳定性评估</strong></td><td>□ 优秀　□ 良好　□ 一般　□ 风险较高</td></tr>
+      <tr><td><strong>入职动机</strong></td><td>□ 强烈　□ 适中　□ 不明确</td></tr>
+      <tr><td><strong>红线验证</strong></td><td>□ 全部通过　□ 部分通过　□ 未通过</td></tr>
+      <tr><td><strong>价值观匹配</strong></td><td>□ 高度匹配　□ 基本匹配　□ 需关注</td></tr>
+      <tr><td><strong>录用建议</strong></td><td>□ 强烈推荐　□ 推荐　□ 待定　□ 不推荐</td></tr>
+      <tr><td><strong>建议薪资</strong></td><td>_________________________________</td></tr>
+    </table>
+    <p style="margin-top:30px;color:#999;font-size:10pt">本面试评估表由纳宝帝AI智能面试官系统自动生成 ｜ ${new Date().toLocaleDateString('zh-CN')}</p>
+    </body></html>
+  `;
+
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${candidate.name}_面试评估表.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ Word 文件已导出', 'success');
+}
+
+/* ============================================================
+   Module 5: Hiring Decision
+   ============================================================ */
+function populateDecisionCandidateSelect() {
+  const select = document.getElementById('decisionCandidateSelect');
+  select.innerHTML = '<option value="">-- 请选择候选人 --</option>' +
+    state.candidates.map(c => `<option value="${c.id}">${escapeHtml(c.name)}（匹配度${c.analysis?.matchScore || 0}分）</option>`).join('');
+}
+
+function loadDecisionView() {
+  const select = document.getElementById('decisionCandidateSelect');
+  const candidateId = parseInt(select.value);
+  if (!candidateId) { document.getElementById('decisionResult').innerHTML = ''; return; }
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (candidate?.decision) {
+    renderDecision(candidate);
+  } else {
+    document.getElementById('decisionResult').innerHTML = '';
+    document.getElementById('interviewFeedback').value = '';
+  }
+}
+
+async function generateDecision() {
+  const select = document.getElementById('decisionCandidateSelect');
+  const candidateId = parseInt(select.value);
+  if (!candidateId) { showToast('⚠️ 请选择候选人', 'warning'); return; }
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (!candidate) return;
+
+  const feedback = document.getElementById('interviewFeedback').value.trim();
+
+  const btn = document.getElementById('decisionBtn');
+  btn.disabled = true;
+  showLoading(`正在为 ${candidate.name} 生成录用建议...`, `准备发起 ${state.ensembleCount} 轮 AI 分析`);
+
+  try {
+    const systemPrompt = `你是一位资深HR招聘专家和管理顾问。你擅长综合候选人简历分析、面试表现等信息，给出专业的录用决策建议、薪资参考和新员工管理方案。输出必须是合法JSON格式。`;
+
+    const userPrompt = `基于以下所有分析结果和面试反馈，给出录用决策建议。
+
+岗位信息：
+${JSON.stringify({ jobTitle: state.jdAnalysis?.jobTitle, salaryRange: state.jdAnalysis?.salaryRange, competencyDimensions: state.jdAnalysis?.competencyDimensions }, null, 2)}
+
+候选人简历分析：
+${JSON.stringify(candidate.analysis, null, 2)}
+
+${candidate.questions?.stabilityAnalysis ? `工作经历稳定性分析：\n${JSON.stringify(candidate.questions.stabilityAnalysis, null, 2)}` : ''}
+
+${candidate.questions?.motivationAssessment ? `入职动机评估：\n${JSON.stringify(candidate.questions.motivationAssessment, null, 2)}` : ''}
+
+${candidate.questions?.redLineChecklist ? `红线验证清单：\n${JSON.stringify(candidate.questions.redLineChecklist, null, 2)}` : ''}
+
+${candidate.questions?.valuesAlignment ? `4D+1价值观匹配：\n${JSON.stringify(candidate.questions.valuesAlignment, null, 2)}` : ''}
+
+${candidate.questions ? `面试问题摘要：\n共${candidate.questions.totalQuestions || ''}题，预计${candidate.questions.estimatedTime || ''}` : ''}
+
+${feedback ? `面试官反馈：\n${feedback}` : '面试官反馈：暂无'}
+
+请以JSON格式输出（不要输出JSON以外的任何内容）：
+{
+  "recommendation": "强烈推荐或推荐或待定或不推荐",
+  "confidence": 信心指数(0-100整数),
+  "reasons": ["推荐/不推荐理由1", "理由2", ...],
+  "stabilityVerdict": "稳定性结论（基于工作经历分析，一句话）",
+  "motivationVerdict": "入职动机结论（一句话）",
+  "redLineStatus": "红线验证状态（全部通过/部分待验证/存在风险）",
+  "valuesFitScore": 价值观匹配最终评分(0-100整数，如有面试反馈则综合预估和面试表现),
+  "salaryRecommendation": {
+    "range": "建议薪资范围（如12k-15k）",
+    "rationale": "薪资建议依据"
+  },
+  "onboardingPlan": {
+    "firstWeek": "第一周入职计划",
+    "firstMonth": "第一个月工作安排",
+    "trainingNeeds": ["培训需求1", "需求2", ...],
+    "managementTips": ["管理建议1", "建议2", ...]
+  },
+  "riskMitigation": ["风险缓解措施1", ...],
+  "developmentPlan": "中长期发展建议（2-3句话）"
+}
+
+要求：
+1. 综合考虑简历匹配度、稳定性分析、入职动机、红线验证、价值观匹配和面试反馈（如有）
+2. 如存在红线风险，recommendation 不得为"强烈推荐"
+3. 如跳槽风险为"高"，需在riskMitigation中给出具体应对措施
+4. 如无面试反馈，主要基于简历分析和面试问题模块的分析结果给出建议
+5. recommendation 必须是四个选项之一
+6. 理由要具体，避免空话
+7. onboardingPlan 要可落地执行`;
+
+    const result = await ensembleAnalysis(systemPrompt, userPrompt);
+    candidate.decision = result;
+    renderDecision(candidate);
+    markModuleCompleted(5);
+    showToast(`✅ ${candidate.name} 的录用建议已生成！`, 'success');
+  } catch (err) {
+    showToast(`❌ 生成失败: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    hideLoading();
+  }
+}
+
+function renderDecision(candidate) {
+  const container = document.getElementById('decisionResult');
+  const d = candidate.decision;
+  if (!d) return;
+
+  const recClass = d.recommendation === '强烈推荐' || d.recommendation === '推荐' ? 'recommend' :
+                   d.recommendation === '待定' ? 'pending' : 'not-recommend';
+  const recColor = d.recommendation === '强烈推荐' || d.recommendation === '推荐' ? 'var(--success)' :
+                   d.recommendation === '待定' ? 'var(--warning)' : 'var(--error)';
+
+  const reasonsHtml = (d.reasons || []).map(r => `<li style="margin-bottom:4px">${escapeHtml(r)}</li>`).join('');
+  const trainingHtml = (d.onboardingPlan?.trainingNeeds || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
+  const tipsHtml = (d.onboardingPlan?.managementTips || []).map(t => `<li style="margin-bottom:4px">💡 ${escapeHtml(t)}</li>`).join('');
+  const riskHtml = (d.riskMitigation || []).map(r => `<li style="margin-bottom:4px;color:var(--warning)">⚠️ ${escapeHtml(r)}</li>`).join('');
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="decision-card ${recClass}">
+        <div class="decision-header">
+          <div>
+            <div style="font-size:13px;color:var(--text-sec)">录用建议</div>
+            <div class="decision-badge" style="background:${recColor};color:#fff">${escapeHtml(d.recommendation)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;color:var(--text-sec)">信心指数</div>
+            <div style="font-size:28px;font-weight:700;color:${recColor}">${d.confidence}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analysis-section" style="margin-top:16px">
+        <h4>📌 决策理由</h4>
+        <ul style="list-style:none;padding:0">${reasonsHtml}</ul>
+      </div>
+
+      ${(d.stabilityVerdict || d.motivationVerdict || d.redLineStatus || d.valuesFitScore !== undefined) ? `
+      <div class="analysis-section">
+        <h4>🔍 四维验证结论</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          ${d.stabilityVerdict ? `<div class="special-panel stability" style="margin:0;padding:10px 14px"><div style="font-size:12px;font-weight:600;color:#3B82F6;margin-bottom:2px">📊 稳定性</div><div style="font-size:13px;color:var(--text-sec)">${escapeHtml(d.stabilityVerdict)}</div></div>` : ''}
+          ${d.motivationVerdict ? `<div class="special-panel motivation" style="margin:0;padding:10px 14px"><div style="font-size:12px;font-weight:600;color:#10B981;margin-bottom:2px">🚀 入职动机</div><div style="font-size:13px;color:var(--text-sec)">${escapeHtml(d.motivationVerdict)}</div></div>` : ''}
+          ${d.redLineStatus ? `<div class="special-panel redline" style="margin:0;padding:10px 14px"><div style="font-size:12px;font-weight:600;color:#EF4444;margin-bottom:2px">🚨 红线验证</div><div style="font-size:13px;color:var(--text-sec)">${escapeHtml(d.redLineStatus)}</div></div>` : ''}
+          ${d.valuesFitScore !== undefined ? `<div class="special-panel values" style="margin:0;padding:10px 14px"><div style="font-size:12px;font-weight:600;color:#8B5CF6;margin-bottom:2px">💎 4D+1价值观匹配</div><div style="font-size:18px;font-weight:700;color:${getScoreColor(d.valuesFitScore)}">${d.valuesFitScore}<span style="font-size:12px;color:var(--text-light)"> /100</span></div></div>` : ''}
+        </div>
+      </div>` : ''}
+
+      <div class="analysis-section">
+        <h4>💰 薪资参考</h4>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span style="font-size:20px;font-weight:700;color:var(--primary)">${escapeHtml(d.salaryRecommendation?.range || '面议')}</span>
+        </div>
+        <p style="font-size:13px;color:var(--text-sec);margin-top:4px">${escapeHtml(d.salaryRecommendation?.rationale || '')}</p>
+      </div>
+
+      <div class="analysis-section">
+        <h4>📋 入职管理方案</h4>
+        <div style="background:var(--bg);padding:14px;border-radius:8px;margin-bottom:10px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">📅 第一周</div>
+          <p style="font-size:13px;color:var(--text-sec)">${escapeHtml(d.onboardingPlan?.firstWeek || '')}</p>
+        </div>
+        <div style="background:var(--bg);padding:14px;border-radius:8px;margin-bottom:10px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">📅 第一个月</div>
+          <p style="font-size:13px;color:var(--text-sec)">${escapeHtml(d.onboardingPlan?.firstMonth || '')}</p>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">🎯 培训需求</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">${trainingHtml}</div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">💡 管理建议</div>
+          <ul style="list-style:none;padding:0">${tipsHtml}</ul>
+        </div>
+      </div>
+
+      ${riskHtml ? `
+      <div class="analysis-section">
+        <h4>⚠️ 风险缓解措施</h4>
+        <ul style="list-style:none;padding:0">${riskHtml}</ul>
+      </div>` : ''}
+
+      <div class="analysis-section">
+        <h4>🌱 中长期发展建议</h4>
+        <p style="font-size:13px;color:var(--text-sec);line-height:1.8">${escapeHtml(d.developmentPlan || '')}</p>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="exportDecisionReport(${candidate.id})">📄 导出决策报告</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigateTo(1)">← 返回JD分析</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigateTo(3)">← 查看对比</button>
+      </div>
+    </div>
+  `;
+}
+
+function exportDecisionReport(candidateId) {
+  const candidate = state.candidates.find(c => c.id === candidateId);
+  if (!candidate?.decision) return;
+  const d = candidate.decision;
+
+  let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"><title>录用决策报告 - ${candidate.name}</title>
+    <style>
+      body { font-family: "Microsoft YaHei", sans-serif; font-size: 12pt; line-height: 1.8; color: #1E293B; }
+      h1 { font-size: 20pt; color: #4F46E5; border-bottom: 2px solid #4F46E5; padding-bottom: 8px; }
+      h2 { font-size: 14pt; color: #4F46E5; margin-top: 24px; border-left: 4px solid #4F46E5; padding-left: 10px; }
+      .meta { background: #F1F5F9; padding: 12px 16px; border-radius: 8px; margin: 12px 0; }
+      .recommendation { font-size: 18pt; font-weight: bold; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+      td { padding: 8px 12px; border: 1px solid #ddd; }
+      .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #ddd; color: #999; font-size: 10pt; }
+    </style></head><body>
+    <h1>录用决策报告</h1>
+    <div class="meta">
+      <p><strong>候选人：</strong>${candidate.name}　　<strong>岗位：</strong>${escapeHtml(state.jdAnalysis?.jobTitle || '')}</p>
+      <p><strong>简历匹配度：</strong>${candidate.analysis?.matchScore || '-'}分　　<strong>信心指数：</strong>${d.confidence}%</p>
+      <p><strong>生成日期：</strong>${new Date().toLocaleString('zh-CN')}</p>
+    </div>
+
+    <h2>录用建议</h2>
+    <p class="recommendation" style="color:${d.recommendation === '强烈推荐' || d.recommendation === '推荐' ? '#10B981' : d.recommendation === '待定' ? '#F59E0B' : '#EF4444'}">${escapeHtml(d.recommendation)}</p>
+
+    ${(d.stabilityVerdict || d.motivationVerdict || d.redLineStatus || d.valuesFitScore !== undefined) ? `
+    <h2>四维验证结论</h2>
+    <table>
+      ${d.stabilityVerdict ? `<tr><td style="width:25%;background:#EFF6FF"><strong>📊 工作经历稳定性</strong></td><td>${escapeHtml(d.stabilityVerdict)}</td></tr>` : ''}
+      ${d.motivationVerdict ? `<tr><td style="background:#F0FDF4"><strong>🚀 入职动机</strong></td><td>${escapeHtml(d.motivationVerdict)}</td></tr>` : ''}
+      ${d.redLineStatus ? `<tr><td style="background:#FEF2F2"><strong>🚨 红线验证</strong></td><td>${escapeHtml(d.redLineStatus)}</td></tr>` : ''}
+      ${d.valuesFitScore !== undefined ? `<tr><td style="background:#FAF5FF"><strong>💎 4D+1价值观匹配</strong></td><td><strong style="font-size:14pt">${d.valuesFitScore} / 100</strong></td></tr>` : ''}
+    </table>` : ''}
+
+    <h2>决策理由</h2>
+    <ul>${(d.reasons || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
+
+    <h2>薪资参考</h2>
+    <p><strong>建议范围：</strong>${escapeHtml(d.salaryRecommendation?.range || '面议')}</p>
+    <p><strong>依据：</strong>${escapeHtml(d.salaryRecommendation?.rationale || '')}</p>
+
+    <h2>入职管理方案</h2>
+    <p><strong>第一周：</strong>${escapeHtml(d.onboardingPlan?.firstWeek || '')}</p>
+    <p><strong>第一个月：</strong>${escapeHtml(d.onboardingPlan?.firstMonth || '')}</p>
+    <p><strong>培训需求：</strong></p>
+    <ul>${(d.onboardingPlan?.trainingNeeds || []).map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+    <p><strong>管理建议：</strong></p>
+    <ul>${(d.onboardingPlan?.managementTips || []).map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+
+    ${d.riskMitigation?.length ? `
+    <h2>风险缓解措施</h2>
+    <ul>${d.riskMitigation.map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
+
+    <h2>中长期发展建议</h2>
+    <p>${escapeHtml(d.developmentPlan || '')}</p>
+
+    <div class="footer">
+      <p>本报告由纳宝帝AI智能面试官系统自动生成</p>
+      <p>报告仅供HR决策参考，最终录用决策需结合实际情况综合判断</p>
+    </div>
+    </body></html>
+  `;
+
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${candidate.name}_录用决策报告.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 决策报告已导出', 'success');
+}
+
+/* ============================================================
+   Settings
+   ============================================================ */
+function openSettings() {
+  document.getElementById('apiKeyInput').value = state.apiKey;
+  document.getElementById('modelSelect').value = state.model;
+  document.getElementById('ensembleSelect').value = state.ensembleCount;
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+function saveSettings() {
+  state.apiKey = document.getElementById('apiKeyInput').value.trim();
+  state.model = document.getElementById('modelSelect').value;
+  state.ensembleCount = parseInt(document.getElementById('ensembleSelect').value);
+  localStorage.setItem('kimi_api_key', state.apiKey);
+  localStorage.setItem('kimi_model', state.model);
+  localStorage.setItem('ensemble_count', state.ensembleCount.toString());
+  closeSettings();
+  showToast('✅ 设置已保存', 'success');
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+function confirmReset() {
+  if (state.candidates.length === 0 && !state.jdAnalysis) {
+    showToast('当前无数据可重置', 'info');
+    return;
+  }
+  if (confirm('确定要重置所有数据吗？这将清空岗位分析、候选人列表和所有分析结果，不可恢复。')) {
+    state.jdText = '';
+    state.jdAnalysis = null;
+    state.candidates = [];
+    state.comparison = null;
+    state.unlockedModules = [1];
+    state.currentModule = 1;
+
+    document.getElementById('jdInput').value = '';
+    document.getElementById('jdFileName').style.display = 'none';
+    document.getElementById('jdResultContainer').innerHTML = '';
+    document.getElementById('candidateListCard').style.display = 'none';
+    document.getElementById('goCompareBtn').style.display = 'none';
+    document.getElementById('comparisonResult').innerHTML = '';
+    document.getElementById('questionsResult').innerHTML = '';
+    document.getElementById('decisionResult').innerHTML = '';
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      const m = parseInt(item.dataset.module);
+      item.classList.remove('completed', 'active');
+      if (m > 1) item.classList.add('locked');
+      if (m === 1) item.classList.add('active');
+    });
+
+    navigateTo(1);
+    showToast('✅ 所有数据已重置', 'success');
+  }
+}
+
+/* ============================================================
+   Drag & Drop Setup
+   ============================================================ */
+function setupDragDrop(zoneId, handler) {
+  const zone = document.getElementById(zoneId);
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', async e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const input = zone.querySelector('input[type="file"]');
+    if (input) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+}
+
+/* ============================================================
+   Initialization
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  setupDragDrop('jdUploadZone', handleJDFileUpload);
+  setupDragDrop('resumeUploadZone', handleResumeFileUpload);
+
+  // Close modal on overlay click
+  document.getElementById('settingsModal').addEventListener('click', e => {
+    if (e.target.id === 'settingsModal') closeSettings();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSettings();
+  });
+
+  console.log('纳宝帝AI 智能面试官 系统已就绪');
+  console.log('API Key:', state.apiKey ? '已配置' : '未配置');
+  console.log('Model:', state.model);
+  console.log('Ensemble:', state.ensembleCount + '轮');
+});
+</script>
+</body>
+</html>
