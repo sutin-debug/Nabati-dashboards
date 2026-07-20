@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>纳宝帝AI 智能面试官 — HR招聘全流程智能辅助系统</title>
+<title>Nabati AI Smart Interviewer — HR Recruitment Full-Process Assistant</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -27,7 +27,7 @@ a{color:var(--primary);text-decoration:none}
 
 /* ========== Layout ========== */
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:260px;background:var(--sidebar-grad);color:#fff;display:flex;flex-direction:column;flex-shrink:0;z-index:10}
+.sidebar{width:290px;background:var(--sidebar-grad);color:#fff;display:flex;flex-direction:column;flex-shrink:0;z-index:10}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
 /* ========== Sidebar ========== */
@@ -228,29 +228,29 @@ a{color:var(--primary);text-decoration:none}
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h1>纳宝帝AI 智能面试官</h1>
-      <p>HR招聘全流程智能辅助系统</p>
+      <h1>Nabati AI Smart Interviewer</h1>
+      <p>HR Recruitment Full-Process Assistant</p>
     </div>
     <nav class="nav" id="nav">
       <div class="nav-item active" data-module="1" onclick="navigateTo(1)">
         <div class="nav-num">1</div>
-        <div class="nav-text">岗位JD分析<small>提取核心要求与能力维度</small></div>
+        <div class="nav-text">岗位JD分析 Job Analysis<small>提取核心要求与能力维度</small></div>
       </div>
       <div class="nav-item locked" data-module="2" onclick="navigateTo(2)">
         <div class="nav-num">2</div>
-        <div class="nav-text">简历管理<small>候选人匹配度分析</small></div>
+        <div class="nav-text">简历管理 Resume Management<small>候选人匹配度分析</small></div>
       </div>
       <div class="nav-item locked" data-module="3" onclick="navigateTo(3)">
         <div class="nav-num">3</div>
-        <div class="nav-text">候选人对比<small>多维交叉分析与排名</small></div>
+        <div class="nav-text">候选人对比 Candidate Comparison<small>多维交叉分析与排名</small></div>
       </div>
       <div class="nav-item locked" data-module="4" onclick="navigateTo(4)">
         <div class="nav-num">4</div>
-        <div class="nav-text">面试题目生成<small>结构化面试问题与导出</small></div>
+        <div class="nav-text">面试题目生成 Question Generation<small>结构化面试问题与导出</small></div>
       </div>
       <div class="nav-item locked" data-module="5" onclick="navigateTo(5)">
         <div class="nav-num">5</div>
-        <div class="nav-text">录用决策<small>AI推荐与入职方案</small></div>
+        <div class="nav-text">录用决策 Hiring Decision<small>AI推荐与入职方案</small></div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -448,11 +448,11 @@ const state = {
 };
 
 const moduleTitles = {
-  1: '岗位JD分析',
-  2: '简历管理',
-  3: '候选人对比',
-  4: '面试题目生成',
-  5: '录用决策'
+  1: 'Job Analysis',
+  2: 'Resume Management',
+  3: 'Candidate Comparison',
+  4: 'Question Generation',
+  5: 'Hiring Decision'
 };
 
 /* ============================================================
